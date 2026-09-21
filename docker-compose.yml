@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: go-calendar-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-go_calendar}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-go_calendar}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U ${POSTGRES_USER:-go_calendar}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  go-calendar:
+    build: .
+    container_name: go-events-calendar
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-go_calendar}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-go_calendar}
+      - GOOGLE_KEY_FILE=/app/credentials/service-account.json
+    volumes:
+      - ./credentials:/app/credentials:ro
+    healthcheck:
+      test: ["CMD","wget","-qO-","http://localhost:3000/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:
