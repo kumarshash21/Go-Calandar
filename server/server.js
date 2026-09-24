@@ -2,9 +2,6 @@
 require('dotenv').config({ path: require('path').join(__dirname,'../.env') });
 
 const express        = require('express');
-const session        = require('express-session');
-const passport       = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const NodeCache      = require('node-cache');
 const path           = require('path');
 const helmet         = require('helmet');
@@ -13,8 +10,6 @@ const pool           = require('../db/pool');
 
 // ── Config ────────────────────────────────────────────────────
 const PORT       = parseInt(process.env.PORT || '3000');
-const BASE_URL   = process.env.BASE_URL   || `http://localhost:${PORT}`;
-const ALLOWED    = (process.env.ALLOWED_DOMAINS||'greyorange.com').split(',').map(s=>s.trim());
 
 const CM_TEAM = [
   'bharat.sharma@greyorange.com','charu.g@greyorange.com',
@@ -462,68 +457,15 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(express.json({ limit:'2mb' }));
 app.use(express.urlencoded({ extended:true }));
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
-  resave: false, saveUninitialized: false,
-  cookie: { maxAge: 24*60*60*1000, secure: process.env.NODE_ENV==='production' }
-}));
-app.use(passport.initialize());
-app.use(passport.session());
-
-// ── Passport OAuth ────────────────────────────────────────────
-passport.use(new GoogleStrategy({
-  clientID:     process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL:  BASE_URL + '/auth/google/callback'
-}, (accessToken, refreshToken, profile, done) => {
-  const email  = profile.emails?.[0]?.value || '';
-  const domain = email.split('@')[1] || '';
-  if (ALLOWED.length && !ALLOWED.includes(domain))
-    return done(null, false, { message: 'Domain not allowed' });
-  return done(null, { email, name: profile.displayName, photo: profile.photos?.[0]?.value });
-}));
-passport.serializeUser((u,done)=>done(null,u));
-passport.deserializeUser((u,done)=>done(null,u));
-
-// ── Auth routes ───────────────────────────────────────────────
-app.get('/auth/google', passport.authenticate('google',{ scope:['profile','email'] }));
-app.get('/auth/google/callback',
-  passport.authenticate('google',{ failureRedirect:'/login' }),
-  (req,res) => res.redirect('/'));
-app.get('/logout', (req,res) => { req.logout(()=>{}); res.redirect('/login'); });
-app.get('/login', (req,res) => {
-  res.send(`<!DOCTYPE html><html><head><title>GO Calendar — Sign In</title>
-<style>*{box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#F0F2F6;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-.card{background:#fff;border-radius:14px;padding:44px 40px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.1);max-width:380px;width:90%}
-.logo{font-size:22px;font-weight:800;color:#1B2A4A;margin-bottom:6px}
-.sub{color:#64748B;font-size:13px;margin-bottom:28px;line-height:1.5}
-a.btn{display:inline-flex;align-items:center;gap:8px;background:#E86A00;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;transition:.15s}
-a.btn:hover{background:#C25800}</style></head>
-<body><div class="card">
-  <div class="logo">GO Events Calendar</div>
-  <div class="sub">GreyOrange · Release &amp; Deployment Tracker<br>Sign in with your GreyOrange account to continue.</div>
-  <a class="btn" href="/auth/google">Sign in with Google</a>
-</div></body></html>`);
-});
-
-// ── Auth guard ────────────────────────────────────────────────
-function requireAuth(req,res,next){
-  if(req.isAuthenticated()) return next();
-  res.redirect('/login');
-}
 
 // ── Serve dashboard ───────────────────────────────────────────
-app.get('/', requireAuth, (req,res)=>
+app.get('/', (req,res)=>
   res.sendFile(path.join(__dirname,'../public/dashboard.html')));
 
-// ── User info ─────────────────────────────────────────────────
-app.get('/me', requireAuth, (req,res)=>
-  res.json({ email: req.user.email, name: req.user.name }));
-
 // ── API dispatcher ────────────────────────────────────────────
-app.post('/api/run', requireAuth, async (req,res) => {
+app.post('/api/run', async (req,res) => {
   const { method, args=[] } = req.body;
-  const email = req.user?.email || '';
+  const email = '';
   try {
     let result;
     switch(method) {

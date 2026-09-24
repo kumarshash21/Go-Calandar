@@ -54,7 +54,7 @@ try {
 
 // 6. Validate .env has required keys
 const env = fs.readFileSync(envPath, 'utf8');
-const required = ['DATABASE_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'SESSION_SECRET'];
+const required = ['DATABASE_URL'];
 const missing  = required.filter(k => !env.includes(k+'=') || env.includes(k+'=PASTE_') || env.includes(k+'=your-'));
 if (missing.length) {
   console.log('\n⚠  Please set these in .env before starting:');

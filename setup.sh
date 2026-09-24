@@ -28,24 +28,6 @@ if [ ! -f .env ]; then
   read -p "  Google Sheet ID (only needed for one-time 'npm run db:migrate') []: " SHEET_ID
   sed -i "s|SHEET_ID=.*|SHEET_ID=$SHEET_ID|" .env
 
-  read -p "  Google OAuth Client ID: " CLIENT_ID
-  sed -i "s|GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=$CLIENT_ID|" .env
-
-  read -p "  Google OAuth Client Secret: " CLIENT_SECRET
-  sed -i "s|GOOGLE_CLIENT_SECRET=.*|GOOGLE_CLIENT_SECRET=$CLIENT_SECRET|" .env
-
-  read -p "  Base URL [http://localhost:3000]: " BASE_URL
-  BASE_URL=${BASE_URL:-http://localhost:3000}
-  sed -i "s|BASE_URL=.*|BASE_URL=$BASE_URL|" .env
-
-  read -p "  Allowed email domains [greyorange.com]: " DOMAINS
-  DOMAINS=${DOMAINS:-greyorange.com}
-  sed -i "s|ALLOWED_DOMAINS=.*|ALLOWED_DOMAINS=$DOMAINS|" .env
-
-  # Generate session secret
-  SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-  sed -i "s|SESSION_SECRET=.*|SESSION_SECRET=$SECRET|" .env
-
   echo -e "  ${GREEN}✓${NC} .env file created"
 else
   echo -e "  ${GREEN}✓${NC} .env already exists — skipping"
