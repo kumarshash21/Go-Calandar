@@ -307,6 +307,7 @@ tr.war-room:hover td.sc1,tr.war-room:hover td.sc2,tr.war-room:hover td.sc3{backg
 tr.war-room .ver-input{background:#FEF3C7 !important}
 .wr-badge{display:inline-flex;align-items:center;gap:3px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;vertical-align:middle;letter-spacing:.3px}
 .wr-chip{display:inline-flex;align-items:center;gap:2px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:3px;font-size:9px;font-weight:700;padding:2px 5px;font-family:var(--mono);white-space:nowrap}
+.cr-chip{display:inline-flex;align-items:center;gap:2px;border-radius:3px;font-size:9px;font-weight:700;padding:2px 5px;font-family:var(--mono);white-space:nowrap;margin-top:2px}
 .wr-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,10,.45);z-index:400;align-items:center;justify-content:center}
 .wr-overlay.open{display:flex}
 .wr-modal{background:#fff;border-radius:14px;border:1px solid var(--border2);width:400px;max-width:94vw;box-shadow:0 8px 40px rgba(0,0,0,.18);padding:24px}
@@ -611,6 +612,7 @@ text-align:center;padding:6px 0 4px;line-height:1;
   <div class="abr">
     <button class="ab-btn" onclick="openSummary()">📊 Summary</button>
     <div class="ab-sep"></div>
+    <button class="ab-btn" onclick="openCRDeployment()">🚀 CR Deployment</button>
     <button class="ab-btn" onclick="openAnalytics()">👥 Adoption</button>
     <button class="ab-btn" onclick="openWeeklyReport()">📅 Weekly Report</button>
   </div>
@@ -867,7 +869,7 @@ return String(s)
 .replace(/&/g,'&amp;').replace(/</g,'&lt;')
 .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-var state = { currentTab: 'rtp', rtpRows: null, rmsRows: null, activeType: null, activeMonth: null, sortCol: null, sortDir: 'asc', verFilter: [], pocFilter: [], redZones: {}, warRooms: {}, warRoomPeriods: {}, siteUrls: {}, userEmail: '', rzFilter: false, wrFilter: false };
+var state = { currentTab: 'rtp', rtpRows: null, rmsRows: null, activeType: null, activeMonth: null, sortCol: null, sortDir: 'asc', verFilter: [], pocFilter: [], redZones: {}, warRooms: {}, warRoomPeriods: {}, siteUrls: {}, userEmail: '', rzFilter: false, wrFilter: false, crDeployments: [] };
 var editCtx = {};
 var _loadAttempt = 0;
 function loadTab(tab) {
@@ -1049,6 +1051,34 @@ function dateToWeek(dateStr) {
   } else {
     return 'Week ' + totalWks;
   }
+}
+function loadCRDeploymentsForCalendar() {
+google.script.run
+.withSuccessHandler(function(rows) {
+state.crDeployments = rows || [];
+applyFilters();
+})
+.withFailureHandler(function() {})
+.getCRDeployments();
+}
+function crMatchesForCell(site, week) {
+if (!site || !week || !state.crDeployments.length) return [];
+var siteNorm = site.toLowerCase().trim();
+if (!siteNorm) return [];
+return state.crDeployments.filter(function(cr) {
+if (!cr.subject || !cr.start) return false;
+if (cr.subject.toLowerCase().indexOf(siteNorm) === -1) return false;
+return dateToWeek(cr.start.slice(0,10)) === week;
+});
+}
+function _crChipHtml(matches, dimmed) {
+var h = '';
+matches.forEach(function(cr) {
+var st = (typeof CR_STATUS_STYLE !== 'undefined' && CR_STATUS_STYLE[cr.status]) || { bg:'#DBEAFE', fg:'#1E40AF' };
+var title = 'CR ' + (cr.crNumber || '') + ' — ' + (cr.subject || '') + ' [' + (cr.status || 'Scheduled') + ']';
+h += '<div class="cr-chip' + (dimmed||'') + '" style="background:' + st.bg + ';color:' + st.fg + '" title="' + esc(title) + '">🚀 ' + esc(cr.crNumber || 'CR') + '</div>';
+});
+return h;
 }
 function fmtDate(d) {
 return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
@@ -2421,9 +2451,14 @@ var pS2    = new Date(wrCellData.start + 'T00:00:00');
 var pE2    = new Date(wrCellData.end   + 'T00:00:00');
 wrCellShow = (wkRng2.mon <= pE2 && wkRng2.sun >= pS2);
 }
+var crMatches = crMatchesForCell(row.site, cellWk);
 if (wrCellShow && !val) {
 var wrDimmed = (state.activeType || state.rzFilter || isRowDimmed(row.site)) ? ' chip-dim' : '';
 h += '<div class="wr-chip' + wrDimmed + '" title="War Room: ' + wrCellData.start + ' to ' + wrCellData.end + '">🚨 WR</div>';
+}
+if (crMatches.length && !val) {
+var crDimmed = (state.activeType || state.rzFilter || isRowDimmed(row.site)) ? ' chip-dim' : '';
+h += _crChipHtml(crMatches, crDimmed);
 }
 if (val) {
 var entries = splitEntries(val);
@@ -2488,6 +2523,10 @@ h += '<div class="cancelled-badge" title="Cancelled: ' + esc(cancelTips) + '">' 
 if (wrCellShow && val) {
 var wrDimmedV = (state.activeType || state.rzFilter || isRowDimmed(row.site)) ? ' chip-dim' : '';
 h += '<div class="wr-chip' + wrDimmedV + '" style="margin-top:2px" title="War Room: '+wrCellData.start+' to '+wrCellData.end+'">🚨 WR</div>';
+}
+if (crMatches.length && val) {
+var crDimmedV = (state.activeType || state.rzFilter || isRowDimmed(row.site)) ? ' chip-dim' : '';
+h += _crChipHtml(crMatches, crDimmedV);
 }
 h += '</td>';
 }
@@ -4342,6 +4381,44 @@ btn.textContent = '✓ Copied!';
 setTimeout(function(){ btn.textContent = '📋 Copy'; }, 2000);
 });
 }
+var CR_STATUS_STYLE = {
+  'Successful':             { bg:'#DCFCE7', fg:'#166534' },
+  'Successful with Issues': { bg:'#FEF9C3', fg:'#854D0E' },
+  'Failed':                 { bg:'#FEE2E2', fg:'#991B1B' },
+  'Cancelled':              { bg:'#F1F5F9', fg:'#475569' },
+  'Scheduled':              { bg:'#DBEAFE', fg:'#1E40AF' },
+};
+function openCRDeployment() {
+document.getElementById('crOverlay').classList.add('open');
+document.getElementById('crBody').innerHTML = '<div class="ana-loading">Loading CR deployments…</div>';
+google.script.run
+.withSuccessHandler(renderCRDeployments)
+.withFailureHandler(function(e) {
+document.getElementById('crBody').innerHTML = '<div class="ana-loading">Failed to load CR deployments'+(e&&e.message?': '+esc(e.message):'')+'</div>';
+})
+.getCRDeployments();
+}
+function closeCRDeployment() {
+document.getElementById('crOverlay').classList.remove('open');
+}
+function renderCRDeployments(rows) {
+var body = document.getElementById('crBody');
+if (!rows || !rows.length) { body.innerHTML = '<div class="ana-loading">No CR deployments found</div>'; return; }
+var h = '<div class="ana-table-wrap" style="overflow-x:auto"><table class="ana-table">';
+h += '<tr><th>CR #</th><th>Deployment</th><th>Status</th><th>Start</th><th>End</th></tr>';
+rows.forEach(function(r) {
+var st = CR_STATUS_STYLE[r.status] || CR_STATUS_STYLE['Scheduled'];
+h += '<tr>' +
+'<td style="font-weight:600">'+esc(r.crNumber)+'</td>' +
+'<td>'+esc(r.subject)+'</td>' +
+'<td><span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:'+st.bg+';color:'+st.fg+'">'+esc(r.status)+'</span></td>' +
+'<td>'+_fmtDate(r.start)+'</td>' +
+'<td>'+_fmtDate(r.end)+'</td>' +
+'</tr>';
+});
+h += '</table></div>';
+body.innerHTML = h;
+}
 function openAnalytics() {
 document.getElementById('analyticsOverlay').classList.add('open');
 document.getElementById('analyticsBody').innerHTML = '<div class="ana-loading">Loading usage data…</div>';
@@ -4513,10 +4590,12 @@ if (CM_TEAM_EMAILS.indexOf((email||'').toLowerCase().trim()) !== -1) {
 var ud = document.getElementById('userDisplay');
 if (ud && email) ud.textContent = '👤 ' + email.split('@')[0];
 loadTab('rtp');
+loadCRDeploymentsForCalendar();
 })
 .withFailureHandler(function() {
 state.userEmail = '';
 loadTab('rtp');
+loadCRDeploymentsForCalendar();
 })
 .getCurrentUserEmail();
 }
@@ -4903,6 +4982,18 @@ body.innerHTML = h;
     </div>
     <div class="weekly-body" id="weeklyBody">
       <div class="wkr-empty">Select a week and click <strong>Generate Report</strong></div>
+    </div>
+  </div>
+</div>
+
+<div class="analytics-overlay" id="crOverlay" onclick="if(event.target===this)closeCRDeployment()">
+  <div class="analytics-panel" style="max-width:1000px">
+    <div class="analytics-head">
+      <h2>🚀 CR Deployment Calendar</h2>
+      <button class="analytics-close" onclick="closeCRDeployment()">✕</button>
+    </div>
+    <div class="analytics-body" id="crBody">
+      <div class="ana-loading">Loading CR deployments…</div>
     </div>
   </div>
 </div>

@@ -363,6 +363,99 @@ async function rejectChange(pendingId, approverEmail) {
   return { ok:true };
 }
 
+// ── Salesforce (CR Deployment Calendar) ───────────────────────
+const https = require('https');
+
+let sfToken = null; // { accessToken, instanceUrl, fetchedAt }
+
+function sfPost(hostname, reqPath, form) {
+  return new Promise((resolve, reject) => {
+    const data = new URLSearchParams(form).toString();
+    const req = https.request({
+      hostname, path: reqPath, method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(data) }
+    }, res => {
+      let body = '';
+      res.on('data', c => body += c);
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+function sfGet(hostname, reqPath, accessToken) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname, path: reqPath, method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    }, res => {
+      let body = '';
+      res.on('data', c => body += c);
+      res.on('end', () => resolve({ status: res.statusCode, body }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+async function fetchSfToken() {
+  const form = {
+    grant_type: 'client_credentials',
+    client_id: process.env.SF_CLIENT_ID,
+    client_secret: process.env.SF_CLIENT_SECRET,
+  };
+  let host = new URL(process.env.SF_INSTANCE_URL).hostname;
+  let res = await sfPost(host, '/services/oauth2/token', form);
+  if (res.status === 302 && res.headers.location) {
+    host = new URL(res.headers.location).hostname;
+    res = await sfPost(host, '/services/oauth2/token', form);
+  }
+  if (res.status !== 200) throw new Error(`Salesforce auth failed (${res.status}): ${res.body.slice(0,200)}`);
+  const json = JSON.parse(res.body);
+  return { accessToken: json.access_token, instanceUrl: json.instance_url, fetchedAt: Date.now() };
+}
+
+async function getSfToken(forceRefresh) {
+  if (!forceRefresh && sfToken && (Date.now() - sfToken.fetchedAt) < 50*60*1000) return sfToken;
+  sfToken = await fetchSfToken();
+  return sfToken;
+}
+
+async function sfQuery(soql) {
+  const apiVer = process.env.SF_API_VERSION || 'v60.0';
+  let token = await getSfToken(false);
+  const path = `/services/data/${apiVer}/query/?q=${encodeURIComponent(soql)}`;
+  let res = await sfGet(new URL(token.instanceUrl).hostname, path, token.accessToken);
+  if (res.status === 401) {
+    token = await getSfToken(true);
+    res = await sfGet(new URL(token.instanceUrl).hostname, path, token.accessToken);
+  }
+  if (res.status !== 200) throw new Error(`Salesforce query failed (${res.status}): ${res.body.slice(0,200)}`);
+  return JSON.parse(res.body).records;
+}
+
+async function getCRDeployments() {
+  const ck = 'cr_deployments';
+  const hit = cache.get(ck);
+  if (hit) return hit;
+
+  const soql = `SELECT Id, Subject, StartDateTime, EndDateTime, Case_Number__c, Closer_code_status__c
+                FROM Event WHERE Case_Number__c != null ORDER BY StartDateTime DESC LIMIT 200`;
+  const records = await sfQuery(soql);
+  const result = records.map(r => ({
+    id: r.Id,
+    crNumber: r.Case_Number__c || '',
+    subject: r.Subject || '',
+    start: r.StartDateTime,
+    end: r.EndDateTime,
+    status: r.Closer_code_status__c || 'Scheduled',
+  }));
+  cache.set(ck, result, 300);
+  return result;
+}
+
 // ── Express App ───────────────────────────────────────────────
 const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -456,6 +549,7 @@ app.post('/api/run', requireAuth, async (req,res) => {
       case 'getPendingChanges':       result = await getPendingChanges(); break;
       case 'approveChange':           result = await approveChange(args[0],email); break;
       case 'rejectChange':            result = await rejectChange(args[0],email); break;
+      case 'getCRDeployments':        result = await getCRDeployments(); break;
       default: return res.status(400).json({ error:`Unknown method: ${method}` });
     }
     res.json({ result });
