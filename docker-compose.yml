@@ -24,7 +24,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     env_file: .env
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER:-go_calendar}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-go_calendar}
@@ -32,7 +32,7 @@ services:
     volumes:
       - ./credentials:/app/credentials:ro
     healthcheck:
-      test: ["CMD","wget","-qO-","http://localhost:3000/login"]
+      test: ["CMD","wget","-qO-","http://localhost:${PORT:-3000}/login"]
       interval: 30s
       timeout: 5s
       retries: 3
