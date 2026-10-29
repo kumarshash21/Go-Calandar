@@ -74,3 +74,17 @@ CREATE TABLE IF NOT EXISTS cr_site_alias (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (alias, tab, site)
 );
+
+-- Per-site dashboard links (Tower / MD Dashboard / Butler Server / Platform URL).
+-- One row per site row; links start blank and are filled in from the UI.
+CREATE TABLE IF NOT EXISTS site_links (
+  site_id        INT PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,
+  tab            TEXT NOT NULL,
+  site           TEXT NOT NULL,
+  pl             TEXT NOT NULL DEFAULT '',
+  tower          TEXT NOT NULL DEFAULT '',
+  md_dashboard   TEXT NOT NULL DEFAULT '',
+  butler_server  TEXT NOT NULL DEFAULT '',
+  platform_url   TEXT NOT NULL DEFAULT '',
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);

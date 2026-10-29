@@ -649,21 +649,15 @@ text-align:center;padding:6px 0 4px;line-height:1;
   <span class="filter-label">Type</span>
   <select id="typeFilter" onchange="syncLegendToFilter();applyFilters()">
     <option value="">All types</option>
-    <option value="gm">GreyMatter</option>
-    <option value="firmware">Firmware (BFR/VDA/TTP)</option>
-    <option value="infra">Infra</option>
-    <option value="sol">Solution</option>
+    <option value="gm">GreyMatter Upgrade / Hotfix</option>
+    <option value="firmware">Firmware Update</option>
+    <option value="infra">Infra Update</option>
+    <option value="sol">Tool / Config / Solution Update</option>
     <option value="cert">Cert Renewal</option>
     <option value="os">OS Patching</option>
     <option value="golive">New Go-Live</option>
   </select>
 
-  <button id="rzFilterBtn" onclick="toggleRzFilter()" style="font-family:var(--sans);font-size:13px;padding:8px 12px;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--bg);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:500;transition:all .15s">
-    🔴 <span id="rzFilterLabel">Red Zone</span>
-  </button>
-  <button id="wrFilterBtn" onclick="toggleWrFilter()" style="font-family:var(--sans);font-size:13px;padding:8px 12px;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--bg);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:500;transition:all .15s">
-    🚨 <span id="wrFilterLabel">War Room</span>
-  </button>
   <span class="filter-label">Month</span>
   <select id="monthFilter" onchange="applyFilters()">
     <option value="">All months</option>
@@ -677,10 +671,10 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <option value="Mar27">Mar-27</option>
   </select>
   <div class="legend" id="legendBar">
-    <div class="leg" data-type="gm"       onclick="toggleLegendFilter('gm')"><div class="leg-sq" style="background:var(--gm-bg)"></div>GreyMatter</div>
-    <div class="leg" data-type="firmware" onclick="toggleLegendFilter('firmware')"><div class="leg-sq" style="background:var(--firmware-bg)"></div>Firmware</div>
-    <div class="leg" data-type="infra"    onclick="toggleLegendFilter('infra')"><div class="leg-sq" style="background:var(--infra-bg)"></div>Infra</div>
-    <div class="leg" data-type="sol"    onclick="toggleLegendFilter('sol')"><div class="leg-sq" style="background:var(--sol-bg)"></div>Solution</div>
+    <div class="leg" data-type="gm"       onclick="toggleLegendFilter('gm')"><div class="leg-sq" style="background:var(--gm-bg)"></div>GreyMatter Upgrade</div>
+    <div class="leg" data-type="firmware" onclick="toggleLegendFilter('firmware')"><div class="leg-sq" style="background:var(--firmware-bg)"></div>Firmware Update</div>
+    <div class="leg" data-type="infra"    onclick="toggleLegendFilter('infra')"><div class="leg-sq" style="background:var(--infra-bg)"></div>Infra Update</div>
+    <div class="leg" data-type="sol"    onclick="toggleLegendFilter('sol')"><div class="leg-sq" style="background:var(--sol-bg)"></div>Tool / Config</div>
     <div class="leg" data-type="cert"   onclick="toggleLegendFilter('cert')"><div class="leg-sq" style="background:var(--cert-bg)"></div>Cert</div>
     <div class="leg" data-type="os"     onclick="toggleLegendFilter('os')"><div class="leg-sq" style="background:var(--os-bg)"></div>OS Patch</div>
     <div class="leg" data-type="golive" onclick="toggleLegendFilter('golive')"><div class="leg-sq" style="background:var(--golive-bg);border:1px solid #86EFAC"></div>Go-Live</div>
@@ -741,10 +735,10 @@ text-align:center;padding:6px 0 4px;line-height:1;
       <div class="form-row" id="fTypeRow">
         <label>Update Type</label>
         <select id="fType" onchange="updateNewVerBadge()">
-          <option value="gm">GreyMatter Upgrade</option>
-          <option value="firmware">Firmware (BFR/VDA/TTP)</option>
-          <option value="infra">Infra / GKE</option>
-          <option value="sol">Solution / Config</option>
+          <option value="gm">GreyMatter Upgrade / Hotfix</option>
+          <option value="firmware">Firmware Update</option>
+          <option value="infra">Infra Update</option>
+          <option value="sol">Tool / Config / Solution Update</option>
           <option value="cert">Cert Renewal</option>
           <option value="os">OS Patching</option>
           <option value="golive">🚀 New Go-Live</option>
@@ -2039,7 +2033,8 @@ if (state.activeType) {
 var entries = splitEntries(cellVal);
 if (entries.length === 0 && cellVal) entries = [cellVal];
 var hasMatch = entries.some(function(e) {
-return classifyCell(parseStatus(e).text || e) === state.activeType;
+var pe = parseStatus(e);
+return (pe.type || classifyCell(pe.text || e)) === state.activeType;
 });
 if (!hasMatch) return true;
 }
@@ -2148,6 +2143,33 @@ rows.forEach(function(r) {
         isCurrent: wkAbs === currentWeekAbs,
       });
     });
+  });
+});
+// Salesforce CRs aren't in the sheet cells — add the ones of this type that no cell already cites.
+var CR_POPUP_STATUS = { 'Successful':'done', 'Successful with Issues':'done', 'Scheduled':'active' };
+var rowByKey = {};
+rows.forEach(function(r) { rowByKey[String(r.site).toLowerCase().trim()] = r; });
+(state.crDeployments || []).forEach(function(cr) {
+  if (CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] !== type) return;
+  var m = (cr.matches || []).filter(function(x) { return x.tab === state.currentTab; })[0];
+  if (!m || !cr.start) return;
+  var wk = dateToWeek(crLocalDate(cr.start));
+  if (!wk) return;
+  var n = String(cr.crNumber || '').replace(/^0+/, '');
+  var row = rowByKey[String(m.site).toLowerCase().trim()];
+  if (n && row && Object.keys(row.cells || {}).some(function(k) { return new RegExp('CRN\\s*#?\\s*0*' + n + '(?!\\d)', 'i').test(row.cells[k] || ''); })) return;
+  var st = CR_POPUP_STATUS[cr.status || 'Scheduled'] || 'cancelled';
+  var wkAbs = getAbsWk(wk), rng = weekToDateRange(wk);
+  totalCount++;
+  if (st === 'active') { activeCount++; if (wkAbs > currentWeekAbs) upcomingCount++; }
+  if (st === 'done') doneCount++;
+  if (st === 'cancelled') return;
+  allEntries.push({
+    site: m.site, week: wk, weekNum: wkAbs,
+    text: 'CR ' + n + ' — ' + (cr.activity || cr.subject || ''),
+    status: st, note: '', date: '',
+    dateStr: fmtDate(rng.mon) + ' – ' + fmtDate(rng.sun),
+    isPast: wkAbs < currentWeekAbs, isCurrent: wkAbs === currentWeekAbs
   });
 });
 allEntries.sort(function(a, b) {
@@ -2286,7 +2308,7 @@ filtered = filtered.filter(function(r) {
 var hasFutureMatch = false;
 Object.keys(r.cells).forEach(function(wk) {
 var weekNum = parseInt(wk.split(' ')[1]);
-if (weekNum <= currentWeekNum) return; // skip past weeks AND current week — count only future
+var isFuture = weekNum > currentWeekNum;
 var cellVal = r.cells[wk] || '';
 var entries = cellVal.indexOf('||ENTRY||') !== -1
 ? cellVal.split('||ENTRY||') : [cellVal];
@@ -2297,9 +2319,21 @@ var ps = parseStatus(e);
 var entryType = ps.type || classifyCell(ps.text);
 if (entryType !== type) return;
 hasFutureMatch = true;
-if (ps.status === 'active') totalChanges++;
+if (isFuture && ps.status === 'active') totalChanges++;
 });
 });
+if (!hasFutureMatch) {
+var siteNorm = r.site.toLowerCase().trim();
+state.crDeployments.forEach(function(cr) {
+if (CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] !== type) return;
+if (!(cr.matches || []).some(function(m) { return m.tab === state.currentTab && m.site.toLowerCase().trim() === siteNorm; })) return;
+var wk = dateToWeek(crLocalDate(cr.start));
+var wn = parseInt(String(wk || '').split(' ')[1]);
+if (!wk) return;
+hasFutureMatch = true;
+if (wn > currentWeekNum) totalChanges++;
+});
+}
 return hasFutureMatch;
 });
 }
@@ -2524,7 +2558,7 @@ var sfStart = entries.length;
 crMatches.forEach(function(cr) { entries.push(crToEntry(cr)); });
 var wkRng = weekToDateRange(cellWk);
 var wkDateHint = '  [' + fmtDate(wkRng.mon) + ' – ' + fmtDate(wkRng.sun) + ']';
-var anyMatch = entries.some(function(e){ return classifyCell(parseStatus(e).text || e) === state.activeType; });
+var anyMatch = entries.some(function(e){ var pe = parseStatus(e); return (pe.type || classifyCell(pe.text || e)) === state.activeType; });
 var dimmed = '';
 if (anyDimActive) {
 if (state.activeType && !anyMatch) dimmed = ' chip-dim';
@@ -4861,22 +4895,13 @@ function _collectMissingLinks() {
   var results = [];
   [{ rows: state.rtpRows, tab: 'rtp' }, { rows: state.rmsRows, tab: 'rms' }].forEach(function(src) {
     (src.rows || []).forEach(function(r) {
-      var goLiveWk = null;
-      Object.keys(r.cells || {}).forEach(function(wk) {
-        splitEntries(r.cells[wk]).forEach(function(entry) {
-          var ps = parseStatus(entry);
-          var type = ps.type || classifyCell(ps.text || '') || 'sol';
-          if (type === 'golive' && (ps.status === 'done' || ps.status === 'done-issues')) goLiveWk = wk;
-        });
-      });
-      if (!goLiveWk) return;
       var urls = state.siteUrls[_urlKey(src.tab, r.site, r.pl)] || state.siteUrls[src.tab + '::' + r.site] || r.urls || {};
       var missing = [];
       if (!(urls.tower    || '').trim()) missing.push('Tower');
       if (!(urls.md       || '').trim()) missing.push('MD Dashboard');
       if (!(urls.butler   || '').trim()) missing.push('Butler Server');
       if (!(urls.platform || '').trim()) missing.push('Platform');
-      if (missing.length) results.push({ site: r.site, tab: src.tab, pl: r.pl || '', goLiveWk: goLiveWk, missing: missing });
+      if (missing.length) results.push({ site: r.site, tab: src.tab, pl: r.pl || '', missing: missing });
     });
   });
   results.sort(function(a,b){ return a.site.localeCompare(b.site); });
@@ -4914,19 +4939,18 @@ function _renderLinksWarningBody(data) {
   var el = document.getElementById('linksWarnBody');
   if (!el) return;
   if (!data.length) {
-    el.innerHTML = '<div style="text-align:center;padding:32px;color:#059669;font-weight:700">✅ All sites with completed Go-Live have their links set!</div>';
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:#059669;font-weight:700">✅ All sites have their links set!</div>';
     return;
   }
   var th = function(t, c){ return '<th style="padding:8px 12px;text-align:left;font-weight:700;color:' + (c || 'var(--muted)') + '">' + t + '</th>'; };
-  var h = '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">' + data.length + ' site' + (data.length === 1 ? '' : 's') + ' completed Go-Live but have missing links</div>' +
+  var h = '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">' + data.length + ' site' + (data.length === 1 ? '' : 's') + ' with missing links</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">' +
-    th('Site') + th('Tab') + th('Go-Live Week') + th('Missing Links', '#D97706') + th('Set Links') + '</tr></thead><tbody>';
+    th('Site') + th('Tab') + th('Missing Links', '#D97706') + th('Set Links') + '</tr></thead><tbody>';
   data.forEach(function(d) {
     var badges = d.missing.map(function(m){ return '<span style="background:#FEF3C7;color:#92400E;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;margin-right:3px">' + m + '</span>'; }).join('');
     h += '<tr style="border-bottom:1px solid var(--border)">' +
       '<td style="padding:10px 12px;font-weight:700">' + esc(d.site) + '<br><span style="font-size:9px;color:var(--muted);font-weight:400">' + esc(d.pl) + '</span></td>' +
       '<td style="padding:10px 12px"><span style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:10px">' + d.tab.toUpperCase() + '</span></td>' +
-      '<td style="padding:10px 12px;color:var(--muted)">' + esc(d.goLiveWk) + '</td>' +
       '<td style="padding:10px 12px">' + badges + '</td>' +
       '<td style="padding:10px 12px"><button class="lw-setlinks" data-tab="' + esc(d.tab) + '" data-site="' + esc(d.site) + '" data-pl="' + esc(d.pl) + '" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid #D97706;background:#FEF3C7;color:#92400E;cursor:pointer;font-weight:700">🔗 Set Links</button></td></tr>';
   });

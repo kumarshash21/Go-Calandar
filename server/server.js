@@ -48,15 +48,21 @@ async function readSheet(tab) {
   if (hit) return hit;
 
   const { rows } = await pool.query(
-    `SELECT s.id, s.site, s.pl, s.ver, s.cspoc, s.url_tower, s.url_md, s.url_butler, s.url_platform,
+    `SELECT s.id, s.site, s.pl, s.ver, s.cspoc,
+       COALESCE(NULLIF(l.tower,''), s.url_tower) AS url_tower,
+       COALESCE(NULLIF(l.md_dashboard,''), s.url_md) AS url_md,
+       COALESCE(NULLIF(l.butler_server,''), s.url_butler) AS url_butler,
+       COALESCE(NULLIF(l.platform_url,''), s.url_platform) AS url_platform,
        COALESCE(
          jsonb_object_agg(w.week, trim(w.value)) FILTER (WHERE w.week IS NOT NULL AND trim(w.value) <> ''),
          '{}'::jsonb
        ) AS cells
      FROM sites s
      LEFT JOIN site_weeks w ON w.site_id = s.id
+     LEFT JOIN site_links l ON l.site_id = s.id
      WHERE s.tab = $1
-     GROUP BY s.id, s.site, s.pl, s.ver, s.cspoc, s.url_tower, s.url_md, s.url_butler, s.url_platform, s.row_order
+     GROUP BY s.id, s.site, s.pl, s.ver, s.cspoc, s.url_tower, s.url_md, s.url_butler, s.url_platform, s.row_order,
+              l.tower, l.md_dashboard, l.butler_server, l.platform_url
      ORDER BY s.row_order`,
     [tab]
   );
@@ -256,8 +262,10 @@ async function setSiteUrls(tab, site, urlsJson, email) {
   if (!row) throw new Error('Site not found');
 
   await pool.query(
-    `UPDATE sites SET url_tower=$1, url_md=$2, url_butler=$3, url_platform=$4, updated_at=now() WHERE id=$5`,
-    [urls.tower||'', urls.md||'', urls.butler||'', urls.platform||'', row.id]
+    `INSERT INTO site_links (site_id, tab, site, pl, tower, md_dashboard, butler_server, platform_url)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (site_id) DO UPDATE SET tower=$5, md_dashboard=$6, butler_server=$7, platform_url=$8, updated_at=now()`,
+    [row.id, row.tab, row.site, row.pl, urls.tower||'', urls.md||'', urls.butler||'', urls.platform||'']
   );
   await writeAuditLog('Links Updated', tab, site, '', '', JSON.stringify(urls), email);
   invalidateCache();
