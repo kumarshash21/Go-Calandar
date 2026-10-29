@@ -63,3 +63,14 @@ CREATE TABLE IF NOT EXISTS analytics_events (
 );
 CREATE INDEX IF NOT EXISTS analytics_events_action_idx ON analytics_events (action);
 CREATE INDEX IF NOT EXISTS analytics_events_email_idx ON analytics_events (email);
+
+-- Maps a phrase in a Salesforce CR subject (e.g. "kenco fairlife") to a calendar row,
+-- for customers whose Salesforce name differs from the calendar's site name.
+CREATE TABLE IF NOT EXISTS cr_site_alias (
+  alias        TEXT NOT NULL,
+  tab          TEXT NOT NULL,
+  site         TEXT NOT NULL,
+  editor_email TEXT NOT NULL DEFAULT '',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (alias, tab, site)
+);

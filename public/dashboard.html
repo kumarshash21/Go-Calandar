@@ -307,6 +307,10 @@ tr.war-room:hover td.sc1,tr.war-room:hover td.sc2,tr.war-room:hover td.sc3{backg
 tr.war-room .ver-input{background:#FEF3C7 !important}
 .wr-badge{display:inline-flex;align-items:center;gap:3px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;vertical-align:middle;letter-spacing:.3px}
 .wr-chip{display:inline-flex;align-items:center;gap:2px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:3px;font-size:9px;font-weight:700;padding:2px 5px;font-family:var(--mono);white-space:nowrap}
+.overlay.cr-view .modal-body input,.overlay.cr-view .modal-body select,.overlay.cr-view .modal-body textarea,.overlay.cr-view .entry-list button,.overlay.cr-view .entry-add-row,.overlay.cr-view .status-btn{pointer-events:none}
+.overlay.cr-view #statusBtnRow,.overlay.cr-view .entry-add-row,.overlay.cr-view #fExactDate,.overlay.cr-view .modal-acts .btn:not(.cr-keep){display:none !important}
+.cr-link{color:var(--accent);text-decoration:underline}
+.chip.sf-cr{cursor:default;box-shadow:inset 3px 0 0 #2563EB}
 .cr-chip{display:inline-flex;align-items:center;gap:2px;border-radius:3px;font-size:9px;font-weight:700;padding:2px 5px;font-family:var(--mono);white-space:nowrap;margin-top:2px}
 .wr-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,10,.45);z-index:400;align-items:center;justify-content:center}
 .wr-overlay.open{display:flex}
@@ -407,6 +411,14 @@ th.wk-cur,.wk-hdr.wk-cur{background:#EAF3F0 !important;color:#0A6040 !important;
 .chip.done{opacity:0.82}
 .chip.done::after{content:"✓";position:absolute;top:-6px;right:-6px;font-size:9px;background:#27AE60;color:#fff;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .chip.cancelled{text-decoration:line-through;text-decoration-thickness:2px;opacity:0.5;filter:grayscale(80%)}
+.chip.done-issues{opacity:0.88;color:#92400E !important}
+.chip.done-issues::after{content:"⚠";position:absolute;top:-6px;right:-6px;font-size:9px;background:#D97706;color:#fff;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.status-btn.done-issues-btn{border-color:#D97706;color:#92400E;background:#FFFBEB}
+.status-btn.done-issues-btn:hover{background:#D97706;color:#fff}
+.heatmap-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10200;overflow-y:auto;padding:20px 16px}
+.heatmap-overlay.open{display:block}
+.links-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10200;overflow-y:auto;padding:20px 16px}
+.links-overlay.open{display:block}
 .chip.failed{opacity:0.88;color:#991B1B !important}
 .chip.failed::after{content:"✗";position:absolute;top:-6px;right:-6px;font-size:9px;background:#DC2626;color:#fff;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .chip.cancelled::after{content:"✕";position:absolute;top:-6px;right:-6px;font-size:9px;background:#C0392B;color:#fff;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.25)}
@@ -585,7 +597,7 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <img src="data:image/png;base64,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" alt="GreyOrange" style="height:42px;width:auto;object-fit:contain;margin-right:6px;background:#ffffff;border-radius:4px;padding:3px 5px"/>
     <div>
       <div class="brand-name">GO Events Calendar <span>2026-27</span></div>
-      <div class="brand-year">GREYORANGE · RELEASE, RED ZONE &amp; WAR ROOM TRACKER</div>
+      <div class="brand-year">GREYORANGE · RELEASE</div>
     </div>
   </div>
   <div class="tabs">
@@ -605,11 +617,18 @@ text-align:center;padding:6px 0 4px;line-height:1;
   <div class="abl">
     <button class="ab-btn" id="pendingApprovalBtn" onclick="openPendingPanel()" style="display:none">⏳ Pending<span class="pending-badge" id="pendingBadge">0</span></button>
     <button class="ab-btn" onclick="openStalePanel()" id="staleTriggerBtn">⚠️ Stale<span class="stale-count-badge" id="staleCountBadge" style="display:none">0</span></button>
+    <button class="ab-btn" id="linksWarnBtn" onclick="openLinksWarningPanel()" style="display:none">🔗 Links<span class="stale-count-badge" id="linksWarnBadge" style="display:none">0</span></button>
   </div>
   <div class="abc">
-    <button class="ab-btn-primary" onclick="openThisWeek()" id="thisWeekBtn">📍 This Week</button>
+    <div style="display:flex;align-items:center;background:var(--surface2);border-radius:10px;padding:3px;gap:2px">
+      <button class="ab-btn" onclick="openPrevWeek()" title="Previous Week" style="border:none;background:transparent">◀ Previous</button>
+      <button class="ab-btn-primary" onclick="openThisWeek()" id="thisWeekBtn">📍 This Week</button>
+      <button class="ab-btn" onclick="openNextWeek()" title="Next Week" style="border:none;background:transparent">Next ▶</button>
+    </div>
   </div>
   <div class="abr">
+    <button class="ab-btn" onclick="openHeatmap()">🔥 Heatmap</button>
+    <div class="ab-sep"></div>
     <button class="ab-btn" onclick="openSummary()">📊 Summary</button>
     <div class="ab-sep"></div>
     <button class="ab-btn" onclick="openCRDeployment()">🚀 CR Deployment</button>
@@ -666,16 +685,14 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <div class="leg" data-type="os"     onclick="toggleLegendFilter('os')"><div class="leg-sq" style="background:var(--os-bg)"></div>OS Patch</div>
     <div class="leg" data-type="golive" onclick="toggleLegendFilter('golive')"><div class="leg-sq" style="background:var(--golive-bg);border:1px solid #86EFAC"></div>Go-Live</div>
   </div>
-  <button onclick="openNewSite()" title="Add a new site to the calendar" style="margin-left:auto;padding:5px 12px;font-size:11px;font-weight:600;font-family:var(--sans);background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">＋ New Site</button>
+  <button id="addSiteBtn" onclick="openNewSiteIfAllowed()" title="Add a new site to the calendar" style="margin-left:auto;padding:5px 12px;font-size:11px;font-weight:600;font-family:var(--sans);background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">＋ New Site</button>
 </div>
 
 <div id="tableWrap" class="table-wrap"></div>
 
 <div class="statusbar">
   <strong id="rowCount">—</strong>
-  &nbsp;·&nbsp;GreyOrange · Release, Red Zone &amp; War Room Tracker&nbsp;·&nbsp;
-  <span id="syncStatus">Connected to Google Sheets</span>
-  &nbsp;·&nbsp;
+  &nbsp;·&nbsp;GreyOrange · Release&nbsp;·&nbsp;
   <span id="userDisplay" style="color:var(--accent);font-weight:500"></span>
 </div>
 
@@ -745,12 +762,17 @@ text-align:center;padding:6px 0 4px;line-height:1;
         
         <textarea id="fEntries" style="display:none"></textarea>
       </div>
+      <div class="form-row" id="fCrRow" style="display:none">
+        <label>Salesforce CR</label>
+        <div id="fCrLink" style="font-size:13px;font-weight:600"></div>
+      </div>
       <div class="form-row" id="fNotesRow">
         <label>Notes (optional)</label>
         <input id="fNotes" placeholder="Any context or dependencies…"/>
       </div>
       <div class="status-btn-row" id="statusBtnRow" style="display:none">
-        <button class="status-btn done-btn"   onclick="setStatus('done')">✓ Done</button>
+        <button class="status-btn done-btn"   onclick="setStatus('done')" title="Deployment completed with no issues">✓ Done</button>
+        <button class="status-btn done-issues-btn" onclick="setStatus('done-issues')" title="Deployment done but had issues">⚠ Done (Issues)</button>
         <button class="status-btn delay-btn"  onclick="setStatus('delayed')">→ Delayed</button>
         <button class="status-btn cancel-btn" onclick="setStatus('cancelled')">✕ Cancelled</button>
         <button class="status-btn fail-btn"   onclick="setStatus('failed')">✗ Failed</button>
@@ -763,7 +785,7 @@ text-align:center;padding:6px 0 4px;line-height:1;
       <div class="modal-acts">
         <button class="btn btn-danger" id="deleteEntryBtn" onclick="deleteThisEntry()" style="display:none;margin-right:auto">&#128465; Delete Entry</button>
         <button class="btn" onclick="clearCell()">Clear cell</button>
-        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn cr-keep" onclick="closeModal()">Close</button>
         <button class="btn btn-primary" id="saveBtn" onclick="submitUpdate()">Save</button>
       </div>
     </div>
@@ -822,7 +844,8 @@ var CM_TEAM_EMAILS = [
  'bharat.sharma@greyorange.com','charu.g@greyorange.com',
  'deepinder.k@greyorange.org','jiteshwar.m@greyorange.com',
  'kshitiz.p@greyorange.com','raghu.m@greyorange.com',
- 'shania.s@greyorange.com','soumya.singh@greyorange.com'
+ 'shania.s@greyorange.com','soumya.singh@greyorange.com',
+ 'yash.k@greyorange.com','punit.k.int@greyorange.com'
 ];
 var DELETION_ADMIN_EMAILS = ['bharat.sharma@greyorange.com','kshitiz.p@greyorange.com'];
 function userIsCM()        { return CM_TEAM_EMAILS.indexOf((state.userEmail||'').toLowerCase().trim()) !== -1; }
@@ -924,7 +947,7 @@ google.script.run
 .withSuccessHandler(function(r) {
 if (otherTab === 'rtp') state.rtpRows = r;
 else                    state.rmsRows = r;
-_applyUrlsFromRows(otherTab, r);
+_applyUrlsFromRows(otherTab, r); _updateLinksWarnBadge();
 })
 .withFailureHandler(function(){})
 .readSheet(otherTab);
@@ -1056,20 +1079,55 @@ function loadCRDeploymentsForCalendar() {
 google.script.run
 .withSuccessHandler(function(rows) {
 state.crDeployments = rows || [];
+state.crLoaded = true;
 applyFilters();
+_updateStaleBadge();
 })
 .withFailureHandler(function() {})
 .getCRDeployments();
 }
-function crMatchesForCell(site, week) {
+function crLocalDate(iso) {
+var d = new Date(iso);
+if (isNaN(d)) return null;
+return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+// Salesforce accounts that have no row in the sheet get a read-only row of their own.
+function withSfRows(rows, tab) {
+var have = {};
+rows.forEach(function(r) { have[String(r.site).toLowerCase().trim()] = true; });
+var extra = [];
+state.crDeployments.forEach(function(cr) {
+(cr.matches || []).forEach(function(m) {
+var k = String(m.site).toLowerCase().trim();
+if (!m.fromSalesforce || m.tab !== tab || have[k]) return;
+have[k] = true;
+extra.push({ site: m.site, pl: '', ver: '', cspoc: '', cells: {}, sf: true });
+});
+});
+extra.sort(function(a, b) { return a.site.localeCompare(b.site); });
+return rows.concat(extra);
+}
+function crMatchesForCell(site, week, cellVal) {
 if (!site || !week || !state.crDeployments.length) return [];
 var siteNorm = site.toLowerCase().trim();
-if (!siteNorm) return [];
+var tab = state.currentTab;
 return state.crDeployments.filter(function(cr) {
-if (!cr.subject || !cr.start) return false;
-if (cr.subject.toLowerCase().indexOf(siteNorm) === -1) return false;
-return dateToWeek(cr.start.slice(0,10)) === week;
+if (!cr.start || !cr.matches || !cr.matches.length) return false;
+if (!cr.matches.some(function(m) { return m.tab === tab && m.site.toLowerCase().trim() === siteNorm; })) return false;
+if (dateToWeek(crLocalDate(cr.start)) !== week) return false;
+// The cell's own entry already cites this CR — don't draw a second chip for it.
+var n = String(cr.crNumber || '').replace(/^0+/, '');
+if (n && cellVal && new RegExp('CRN\\s*#?\\s*0*' + n + '(?!\\d)', 'i').test(cellVal)) return false;
+return true;
 });
+}
+var CR_CHANGE_TYPE_TO_CHIP = { 'greymatter upgrade':'gm', 'hotfix upgrade':'gm', 'firmware update':'firmware', 'infra update':'infra', 'tool update':'sol', 'configuration update':'sol', 'solution modification':'sol' };
+var CR_STATUS_TO_CHIP = { 'Successful':'done', 'Successful with Issues':'done-issues', 'Failed':'failed', 'Cancelled':'cancelled' };
+// Salesforce CR -> same entry encoding the sheet cells use, so it renders as a normal chip.
+function crToEntry(cr) {
+var text = String(cr.activity || cr.subject || '').trim() || ('CR ' + (cr.crNumber || ''));
+var enc = encodeStatus(CR_STATUS_TO_CHIP[cr.status] || 'active', text, '', 'CRN#' + String(cr.crNumber || '').replace(/^0+/, '') + ' (Salesforce)', CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] || null, crLocalDate(cr.start));
+return enc;
 }
 function _crChipHtml(matches, dimmed) {
 var h = '';
@@ -1192,6 +1250,8 @@ if (noteIdx !== -1) { note = val.substring(noteIdx + 9); core = val.substring(0,
 var typeTag = null;
 core = core.replace(/\[type:([a-z]+)\]/i, function(_, t) { typeTag = t.toLowerCase(); return ''; }).trim();
 var m;
+m = core.match(/^\[done:issues\]\s*(.*)/i);
+if (m) return { status: 'done-issues', text: m[1].trim(), note: note, type: typeTag, date: dateVal };
 m = core.match(/^\[done\]\s*(.*)/i);
 if (m) return { status: 'done',      text: m[1].trim(), note: note, type: typeTag, date: dateVal };
 m = core.match(/^\[cancelled\]\s*(.*)/i);
@@ -1206,6 +1266,7 @@ function encodeStatus(status, text, newWeek, note, type, exactDate) {
 var typeTag = (type && type !== 'auto') ? '[type:' + type + '] ' : '';
 var prefix  = '';
 if (status === 'done')           prefix = '[done] ';
+else if (status === 'done-issues') prefix = '[done:issues] ';
 else if (status === 'cancelled') prefix = '[cancelled] ';
 else if (status === 'failed')    prefix = '[failed] ';
 else if (status === 'delayed')   prefix = '[delayed:' + newWeek + '] ';
@@ -2212,7 +2273,7 @@ var type  = (document.getElementById('typeFilter').value  || '');
 var month = (document.getElementById('monthFilter').value || '');
 var data  = state.currentTab === 'rtp' ? state.rtpRows : state.rmsRows;
 if (!data) return;
-var filtered = data.slice();
+var filtered = withSfRows(data, state.currentTab);
 var currentWeekNum = parseInt(CURRENT_WEEK.split(' ')[1]) || 13;
 var totalChanges = 0;
 if (q) {
@@ -2400,18 +2461,18 @@ return wrData.end >= todayStr;
 var rzBadge = rzOn ? ' <span class="rz-badge">🔴</span>' : '';
 var wrBadge = wrOn ? ' <span class="wr-badge">🚨 War Room</span>' : '';
 var siteKey = 'rz_' + ri;
-_cellReg[siteKey] = { site: row.site, isRZ: rzOn };
+_cellReg[siteKey] = { site: row.site, isRZ: rzOn, sf: !!row.sf };
 var urlKey2 = _urlKey(state.currentTab, row.site, row.pl);
 var hasUrls = !!(state.siteUrls[urlKey2] && Object.keys(state.siteUrls[urlKey2]).some(function(k){ return !!state.siteUrls[urlKey2][k]; }));
 var urlBtnCls = 'site-link-btn' + (hasUrls ? ' has-urls' : '');
 var urlBtnTitle = hasUrls ? 'Site links' : 'Add site links';
 h += '<td class="fixed sc1 site-name" data-sitekey="' + siteKey + '">' +
 esc(row.site) + rzBadge + wrBadge +
-(row.pl ? '<div class="pl-subtitle">'+esc(row.pl)+'</div>' : '') +
-'<button class="' + urlBtnCls + '" data-urlsite="' + esc(row.site) + '" data-urlpl="' + esc(row.pl||'') + '" title="' + urlBtnTitle + '">🔗</button>' +
+(row.sf ? '<div class="pl-subtitle" title="This site exists only in Salesforce — not on the sheet">☁ Salesforce</div>' : (row.pl ? '<div class="pl-subtitle">'+esc(row.pl)+'</div>' : '')) +
+(row.sf ? '' : '<button class="' + urlBtnCls + '" data-urlsite="' + esc(row.site) + '" data-urlpl="' + esc(row.pl||'') + '" title="' + urlBtnTitle + '">🔗</button>') +
 '</td>';
-h += '<td class="fixed sc2 cspoc-cell"><input class="cspoc-input" data-site="' + esc(row.site) + '" data-tab="' + state.currentTab + '" value="' + esc(row.cspoc || '') + '" placeholder="—" onblur="saveCSPOC(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}"/></td>';
-h += '<td class="fixed sc3 ver-cell"><input class="ver-input" data-site="' + esc(row.site) + '" value="' + esc(row.ver || '') + '" placeholder="—" onblur="saveVersion(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}"/></td>';
+h += '<td class="fixed sc2 cspoc-cell"><input class="cspoc-input" data-site="' + esc(row.site) + '" data-tab="' + state.currentTab + '" value="' + esc(row.cspoc || '') + '"' + (row.sf ? ' disabled' : '') + ' placeholder="—" onblur="saveCSPOC(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}"/></td>';
+h += '<td class="fixed sc3 ver-cell"><input class="ver-input" data-site="' + esc(row.site) + '" value="' + esc(row.ver || '') + '"' + (row.sf ? ' disabled' : '') + ' placeholder="—" onblur="saveVersion(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}"/></td>';
 for (var ci = 0; ci < ALL_WEEKS.length; ci++) {
 var cellWk  = ALL_WEEKS[ci];
 var val     = row.cells[cellWk] || '';
@@ -2440,7 +2501,7 @@ monthActCls = ' col-active';
 }
 }
 var cellKey = 'r' + ri + 'c' + ci;
-_cellReg[cellKey] = { site: row.site, week: cellWk, val: val };
+_cellReg[cellKey] = { site: row.site, week: cellWk, val: val, sf: !!row.sf };
 h += '<td class="' + emptyCls + sepCls + (isCurCol ? ' td-cur' : '') + monthDimCls + monthActCls + '" data-cellkey="' + cellKey + '" style="text-align:center;vertical-align:middle">';
 var wrCellKey  = state.currentTab + '::' + row.site;
 var wrCellData = state.warRooms[wrCellKey];
@@ -2451,18 +2512,16 @@ var pS2    = new Date(wrCellData.start + 'T00:00:00');
 var pE2    = new Date(wrCellData.end   + 'T00:00:00');
 wrCellShow = (wkRng2.mon <= pE2 && wkRng2.sun >= pS2);
 }
-var crMatches = crMatchesForCell(row.site, cellWk);
+var crMatches = crMatchesForCell(row.site, cellWk, val);
 if (wrCellShow && !val) {
 var wrDimmed = (state.activeType || state.rzFilter || isRowDimmed(row.site)) ? ' chip-dim' : '';
 h += '<div class="wr-chip' + wrDimmed + '" title="War Room: ' + wrCellData.start + ' to ' + wrCellData.end + '">🚨 WR</div>';
 }
-if (crMatches.length && !val) {
-var crDimmed = (state.activeType || state.rzFilter || isRowDimmed(row.site)) ? ' chip-dim' : '';
-h += _crChipHtml(crMatches, crDimmed);
-}
-if (val) {
+if (val || crMatches.length) {
 var entries = splitEntries(val);
-if (entries.length === 0) entries = [val];
+if (entries.length === 0 && val) entries = [val];
+var sfStart = entries.length;
+crMatches.forEach(function(cr) { entries.push(crToEntry(cr)); });
 var wkRng = weekToDateRange(cellWk);
 var wkDateHint = '  [' + fmtDate(wkRng.mon) + ' – ' + fmtDate(wkRng.sun) + ']';
 var anyMatch = entries.some(function(e){ return classifyCell(parseStatus(e).text || e) === state.activeType; });
@@ -2484,7 +2543,7 @@ var tip2    = dt2 + (ps2.status === 'delayed' ? ' → '+ps2.newWeek : '') + wkDa
 var d2      = dt2.length > 20 ? dt2.substring(0,18)+'…' : dt2;
 var body2   = esc(d2) + (ef2 ? '<br><span style="font-size:9px;opacity:.75">'+ef2+'</span>' : '');
  var entryKey = 'ek_' + ri + '_' + ci + '_' + entryIdx;
-_cellReg[entryKey] = { site: row.site, week: cellWk, fullCellVal: val, entryVal: entry.trim() };
+_cellReg[entryKey] = { site: row.site, week: cellWk, fullCellVal: val, entryVal: entry.trim(), sf: entryIdx >= sfStart, cr: entryIdx >= sfStart ? crMatches[entryIdx - sfStart] : null };
 var getAbsWk2 = function(wkStr) {
   var str = String(wkStr || '');
   var is2027 = str.indexOf('(2027)') !== -1;
@@ -2494,7 +2553,7 @@ var getAbsWk2 = function(wkStr) {
 var wkAbs2 = getAbsWk2(cellWk);
 var curWkAbs2 = getAbsWk2(CURRENT_WEEK);
 var staleClass = (wkAbs2 < curWkAbs2 && ps2.status === 'active') ? ' stale-active' : '';
-h += '<div class="chip ' + cls2 + sc2 + staleClass + dimmed + '" title="' + esc(tip2) + (staleClass ? ' Past week still active' : '') + '" data-entrykey="' + entryKey + '">' + body2 + '</div>';
+h += '<div class="chip ' + cls2 + sc2 + (entryIdx >= sfStart ? ' sf-cr' : '') + staleClass + dimmed + '" title="' + esc(tip2) + (staleClass ? ' Past week still active' : '') + '" data-entrykey="' + entryKey + '">' + body2 + '</div>';
 });
 if (entries.length > 1) {
 h += '</div>';
@@ -2524,10 +2583,6 @@ if (wrCellShow && val) {
 var wrDimmedV = (state.activeType || state.rzFilter || isRowDimmed(row.site)) ? ' chip-dim' : '';
 h += '<div class="wr-chip' + wrDimmedV + '" style="margin-top:2px" title="War Room: '+wrCellData.start+' to '+wrCellData.end+'">🚨 WR</div>';
 }
-if (crMatches.length && val) {
-var crDimmedV = (state.activeType || state.rzFilter || isRowDimmed(row.site)) ? ' chip-dim' : '';
-h += _crChipHtml(crMatches, crDimmedV);
-}
 h += '</td>';
 }
 h += '</tr>';
@@ -2547,6 +2602,7 @@ wrap2._clickHandler = function(ev) {
 var td = ev.target.closest ? ev.target.closest('td[data-cellkey]') : null;
 if (!td) return;
 var ck = td.getAttribute('data-cellkey');
+if (ck && _cellReg[ck] && _cellReg[ck].sf) return; // Salesforce-only site: nothing on the sheet to edit
 if (ck) openEditByKey(ck);
 };
 wrap2.addEventListener('click', wrap2._clickHandler);
@@ -2559,6 +2615,7 @@ if (!chip) return;
 ev.stopPropagation();
 var key = chip.getAttribute('data-entrykey');
 var ec  = _cellReg[key];
+if (ec && ec.sf) { openCRView(ec.cr); return; } // live from Salesforce — view only
 if (ec) openEditEntry(ec.site, ec.week, ec.fullCellVal, ec.entryVal);
 };
 wrap2.addEventListener('click', wrap2._chipHandler);
@@ -2594,6 +2651,7 @@ var td = e.target.closest ? e.target.closest('td.site-name') : null;
 if (!td) return;
 var sk = td.getAttribute('data-sitekey');
 if (!sk) return;
+if (_cellReg[sk] && _cellReg[sk].sf) return;
 showRzMenu(e, sk);
 };
 wrap.addEventListener('contextmenu', wrap._ctxHandler);
@@ -2653,7 +2711,48 @@ var delBtn2 = document.getElementById('deleteEntryBtn');
 if (delBtn2) delBtn2.style.display = 'none';
 document.getElementById('overlay').classList.add('open');
 }
+function openNewSiteIfAllowed() {
+  if (userIsCM()) openNewSite();
+  else alert('Adding new sites is restricted to the CM team.');
+}
 function openAdd() { openAddUpdate(); }
+function crLinkHtml(num, url) {
+var label = 'CRN#' + String(num || '').replace(/^0+/, '');
+return url ? '<a class="cr-link" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(label) + ' ↗ open in Salesforce</a>' : esc(label);
+}
+// Show the CR number in the popup as a Salesforce link (looks the case up if we only have the number).
+function showCrLink(num, url) {
+var row = document.getElementById('fCrRow'), box = document.getElementById('fCrLink');
+if (!num) { row.style.display = 'none'; return; }
+row.style.display = '';
+box.innerHTML = crLinkHtml(num, url);
+if (url) return;
+var want = num;
+google.script.run.withSuccessHandler(function(u) {
+if (u && document.getElementById('fCrRow').style.display !== 'none' && editCtx._crNum === want) box.innerHTML = crLinkHtml(want, u);
+}).withFailureHandler(function() {}).getCRLink(num);
+}
+function crNumFromText(t) {
+var m = String(t || '').match(/CRN\s*#?\s*0*(\d{5,8})/i);
+return m ? m[1] : '';
+}
+// Read-only popup for a chip that comes straight from Salesforce.
+function openCRView(cr) {
+var entry = crToEntry(cr);
+var parsed = parseStatus(entry);
+var wk = dateToWeek(crLocalDate(cr.start));
+var site = (cr.matches && cr.matches[0] && cr.matches[0].site) || cr.account || '';
+openEdit(site, wk, entry);
+editCtx = { isNew: false, readonlyCR: true, _crNum: String(cr.crNumber || '').replace(/^0+/, '') };
+document.getElementById('overlay').classList.add('cr-view');
+document.getElementById('modalTitle').textContent = 'Salesforce CR';
+var fmt = function(iso) { return iso ? new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'; };
+document.getElementById('modalSub').textContent = site + ' — ' + wk;
+document.getElementById('fNotes').value = [cr.status || 'Scheduled', fmt(cr.start) + ' → ' + fmt(cr.end), cr.changeType || ''].filter(Boolean).join('  ·  ');
+_modalEntries = [cr.subject || parsed.text];
+renderEntryList();
+showCrLink(cr.crNumber, cr.url);
+}
 function openEditEntry(site, week, fullCellVal, entryVal) {
 openEdit(site, week, entryVal);
 editCtx.fullCellVal  = fullCellVal;
@@ -2706,9 +2805,11 @@ document.getElementById('statusBtnRow').style.display  = val ? '' : 'none';
 highlightStatusBtn(parsed.status);
 setMsg('', '');
 document.getElementById('overlay').classList.add('open');
+editCtx._crNum = crNumFromText(parsed.note) || crNumFromText(val);
+showCrLink(editCtx._crNum, '');
 }
 function highlightStatusBtn(status) {
-var map = { done: '.done-btn', cancelled: '.cancel-btn', delayed: '.delay-btn', active: '.reset-btn', failed: '.fail-btn' };
+var map = { done: '.done-btn', 'done-issues': '.done-issues-btn', cancelled: '.cancel-btn', delayed: '.delay-btn', active: '.reset-btn', failed: '.fail-btn' };
 document.querySelectorAll('.status-btn').forEach(function(b) { b.style.fontWeight = '500'; b.style.boxShadow = ''; });
 var sel = map[status];
 if (sel) {
@@ -2757,7 +2858,7 @@ alert('Failed to save: ' + err.message);
 .updateVersion(state.currentTab, site, newVer, state.userEmail);
 }
 function closeModal() {
-document.getElementById('overlay').classList.remove('open');
+document.getElementById('overlay').classList.remove('open', 'cr-view');
 var box = document.getElementById('siteSuggestions');
 if (box) box.style.display = 'none';
 }
@@ -3304,6 +3405,7 @@ state.siteUrls[_urlKey(tab, site, '')] = urls;
 }
 });
 }
+_updateLinksWarnBadge();
 if (state.currentTab === tab) applyFilters();
 })
 .withFailureHandler(function() { _urlLoading[tab] = false; })
@@ -3431,7 +3533,7 @@ sources.forEach(function(src) {
 if (!src.rows) return;
 src.rows.forEach(function(r) {
 var site = { site: r.site, tab: src.tab, ver: r.ver || '', pl: r.pl || '',
- total:0, done:0, active:0, delayed:0, cancelled:0, failed:0,
+ total:0, done:0, doneIssues:0, active:0, delayed:0, cancelled:0, failed:0,
  types: {}, typeDone: {}, typeActive: {} };
 Object.keys(r.cells).forEach(function(wk) {
 var val = r.cells[wk]; if (!val) return;
@@ -3441,7 +3543,9 @@ var ps = parseStatus(entry.trim());
 if (!ps.text && !ps.type) return;
 var type = ps.type || classifyCell(ps.text || entry.trim()) || 'sol';
 site.total++;
-site[ps.status] = (site[ps.status] || 0) + 1;
+var _st = ps.status === 'done-issues' ? 'done' : ps.status; // done-issues counts toward done
+site[_st] = (site[_st] || 0) + 1;
+if (ps.status === 'done-issues') site.doneIssues++;
 if (ps.status === 'failed') site.typesFailed = site.typesFailed || {};
 if (ps.status === 'failed') site.typesFailed[type] = (site.typesFailed[type] || 0) + 1;
 site.types[type] = (site.types[type] || 0) + 1;
@@ -3541,6 +3645,7 @@ var typeActive = {};
 data.forEach(function(s) {
 totals.total     += s.total;
 totals.done      += s.done || 0;
+totals.doneIssues = (totals.doneIssues || 0) + (s.doneIssues || 0);
 totals.active    += s.active || 0; // failed is separate — never counted here
 totals.delayed   += s.delayed || 0;
 totals.cancelled += s.cancelled || 0;
@@ -3557,7 +3662,8 @@ typeActive[t] = (typeActive[t] || 0) + s.typeActive[t];
 });
 document.getElementById('sumSites').textContent     = totals.sites;
 document.getElementById('sumTotal').textContent     = totals.total;
-document.getElementById('sumDone').textContent      = totals.done;
+document.getElementById('sumDone').textContent      = (totals.done || 0) - (totals.doneIssues || 0);
+document.getElementById('sumDoneIssues').textContent = totals.doneIssues || 0;
 document.getElementById('sumActive').textContent    = totals.active;
 document.getElementById('sumDelayed').textContent   = totals.delayed;
 document.getElementById('sumCancelled').textContent = totals.cancelled;
@@ -3682,6 +3788,32 @@ function _collectStaleEntries() {
       });
     });
   });
+  // Salesforce CRs planned to end in a past week that still have no closer status (never marked
+  // Successful/Failed/Cancelled) are stale too. Read-only here: the outcome is recorded in Salesforce.
+  var cited = function(cr) {
+    var n = String(cr.crNumber || '').replace(/^0+/, '');
+    if (!n) return false;
+    var re = new RegExp('CRN\\s*#?\\s*0*' + n + '(?!\\d)', 'i');
+    return sources.some(function(src) {
+      return (src.rows || []).some(function(r) {
+        return Object.keys(r.cells).some(function(wk) { return re.test(r.cells[wk] || ''); });
+      });
+    });
+  };
+  (state.crDeployments || []).forEach(function(cr) {
+    if ((cr.status || 'Scheduled') !== 'Scheduled' || !cr.matches || !cr.matches.length) return;
+    var wk = dateToWeek(crLocalDate(cr.end || cr.start));
+    if (!wk) return;
+    var wkAbs = getAbsWk(wk);
+    if (wkAbs >= curWkAbs || cited(cr)) return;
+    var m = cr.matches[0];
+    entries.push({
+      site: m.site, tab: m.tab, pl: '', week: wk, wkNum: wkAbs,
+      text: 'CR ' + String(cr.crNumber || '').replace(/^0+/, '') + ' — ' + (cr.activity || cr.subject || ''),
+      type: CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] || 'sol',
+      sf: true, url: cr.url || ''
+    });
+  });
   entries.sort(function(a,b) { return a.wkNum !== b.wkNum ? a.wkNum - b.wkNum : a.site.localeCompare(b.site); });
   return entries;
 }
@@ -3794,15 +3926,16 @@ if (!state.rtpRows) missing.push('rtp');
 if (!state.rmsRows) missing.push('rms');
 document.getElementById('staleOverlay').classList.add('open');
 document.getElementById('staleBody').innerHTML = '<div class="stale-empty">Loading data…</div>';
-if (!missing.length) { _finishStalePanel(); return; }
+var finish = function() { ensureCRsLoaded(_finishStalePanel); };
+if (!missing.length) { finish(); return; }
 var pending = missing.length;
 missing.forEach(function(tab) {
 google.script.run
 .withSuccessHandler(function(rows) {
 if (tab === 'rtp') state.rtpRows = rows; else state.rmsRows = rows;
-if (--pending === 0) _finishStalePanel();
+if (--pending === 0) finish();
 })
-.withFailureHandler(function(){ if (--pending === 0) _finishStalePanel(); })
+.withFailureHandler(function(){ if (--pending === 0) finish(); })
 .readSheet(tab);
 });
 }
@@ -3843,7 +3976,7 @@ golive:'background:#D1FAE5;color:#065F46'
 };
 var curWk = parseInt(CURRENT_WEEK.split(' ')[1]);
 var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
-'<span style="font-size:11px;color:var(--muted)">' + rows.length + ' stale entries — choose an action per row, then click <strong>Apply All</strong></span>' +
+'<span style="font-size:11px;color:var(--muted)">' + rows.length + ' stale entries — choose an action per row, then click <strong>Apply All</strong> (Salesforce CRs are closed in Salesforce)</span>' +
 '<div style="display:flex;gap:6px;align-items:center">' +
 '<button onclick="staleSelectAll(true)"  style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:var(--bg);cursor:pointer;color:var(--muted)">Select All</button>' +
 '<button onclick="staleSelectAll(false)" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:var(--bg);cursor:pointer;color:var(--muted)">Deselect All</button>' +
@@ -3858,8 +3991,9 @@ var shortText = e.text.length > 38 ? e.text.substring(0,36) + '…' : e.text;
 var plBadge = e.pl
 ? '<span style="font-size:9px;background:var(--surface2);color:var(--muted);padding:1px 5px;border-radius:3px;margin-left:4px">' + esc(e.pl) + '</span>'
 : '';
+var sfLink = e.url ? '<a href="' + esc(e.url) + '" target="_blank" rel="noopener" style="font-size:10px;font-weight:600;color:#2563EB">Update in Salesforce ↗</a>' : '<span style="font-size:10px;color:var(--muted)">Update in Salesforce</span>';
 h += '<div class="stale-row" id="stale-row-' + idx + '" data-idx="' + idx + '">' +
-'<input type="checkbox" class="stale-chk" data-idx="' + idx + '" checked style="width:14px;height:14px;cursor:pointer">' +
+(e.sf ? '<span></span>' : '<input type="checkbox" class="stale-chk" data-idx="' + idx + '" checked style="width:14px;height:14px;cursor:pointer">') +
 '<div class="stale-site">' + esc(e.site) + plBadge + '</div>' +
 '<div class="stale-wk">' + e.week + '</div>' +
 '<div class="stale-text" title="' + esc(e.text) + '">' +
@@ -3867,11 +4001,11 @@ h += '<div class="stale-row" id="stale-row-' + idx + '" data-idx="' + idx + '">'
 esc(shortText) +
 '</div>' +
 '<div style="display:flex;gap:4px;align-items:center">' +
-'<button class="stale-action-btn" data-idx="' + idx + '" data-act="done"   style="background:#D1FAE5;color:#065F46;border:1.5px solid #059669;font-size:10px;font-weight:700;padding:4px 9px;border-radius:5px;cursor:pointer">✅ Done</button>' +
+(e.sf ? sfLink : '<button class="stale-action-btn" data-idx="' + idx + '" data-act="done"   style="background:#D1FAE5;color:#065F46;border:1.5px solid #059669;font-size:10px;font-weight:700;padding:4px 9px;border-radius:5px;cursor:pointer">✅ Done</button>' +
 '<button class="stale-action-btn" data-idx="' + idx + '" data-act="delay"  style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border2);font-size:10px;font-weight:600;padding:4px 9px;border-radius:5px;cursor:pointer">→ Delay</button>' +
 '<button class="stale-action-btn" data-idx="' + idx + '" data-act="cancel" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border2);font-size:10px;font-weight:600;padding:4px 9px;border-radius:5px;cursor:pointer">✕ Cancel</button>' +
 '<input id="stale-wk-' + idx + '" type="number" min="' + curWk + '" max="66" value="' + curWk + '" ' +
-'style="display:none;width:52px;padding:4px 6px;border-radius:5px;border:1.5px solid #D97706;font-size:11px;font-family:var(--mono);background:var(--bg);color:#92400E">' +
+'style="display:none;width:52px;padding:4px 6px;border-radius:5px;border:1.5px solid #D97706;font-size:11px;font-family:var(--mono);background:var(--bg);color:#92400E">') +
 '</div>' +
 '</div>';
 });
@@ -3909,6 +4043,7 @@ return true;
 var toProcess = [];
 var hasError = false;
 rows.forEach(function(e, idx) {
+if (e.sf) return;
 var chk = document.querySelector('.stale-chk[data-idx="' + idx + '"]');
 if (chk && !chk.checked) return;
 var rec    = (window._staleActions || {})[idx] || { action:'done' };
@@ -3984,15 +4119,57 @@ if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = '✓ Apply All
 renderStaleRows();
 }
 function resolveStale() {}
-function openThisWeek() {
-document.getElementById('twOverlay').classList.add('open');
-renderThisWeek();
+function prevWeek(wk) {
+  var i = ALL_WEEKS.indexOf(wk);
+  return ALL_WEEKS[Math.max(0, i - 1)];
 }
+function nextWeek(wk) {
+  var i = ALL_WEEKS.indexOf(wk);
+  return ALL_WEEKS[Math.min(ALL_WEEKS.length - 1, i + 1)];
+}
+// Heatmap and This Week are driven by Salesforce CRs only: one row per matched site, cells keyed by week.
+function ensureCRsLoaded(cb) {
+  if (state.crLoaded) { cb(); return; }
+  google.script.run
+    .withSuccessHandler(function(rows){ state.crDeployments = rows || []; state.crLoaded = true; cb(); })
+    .withFailureHandler(function(){ state.crDeployments = state.crDeployments || []; cb(); })
+    .getCRDeployments();
+}
+function sfRowsForTab(tab) {
+  var known = {};
+  ((tab === 'rtp' ? state.rtpRows : state.rmsRows) || []).forEach(function(r){ known[String(r.site).toLowerCase().trim()] = r; });
+  var bySite = {};
+  (state.crDeployments || []).forEach(function(cr) {
+    var wk = cr.start ? dateToWeek(crLocalDate(cr.start)) : null;
+    if (!wk) return;
+    (cr.matches || []).forEach(function(m) {
+      if (m.tab !== tab) return;
+      var k = String(m.site).toLowerCase().trim();
+      if (!bySite[k]) {
+        var src = known[k] || {};
+        bySite[k] = { site: m.site, pl: src.pl || '', cspoc: src.cspoc || '', cells: {} };
+      }
+      var cells = bySite[k].cells;
+      cells[wk] = (cells[wk] ? cells[wk] + ENTRY_SEP : '') + crToEntry(cr);
+    });
+  });
+  return Object.keys(bySite).map(function(k){ return bySite[k]; });
+}
+function openThisWeek(wkLabel) {
+document.getElementById('twOverlay').classList.add('open');
+var wk = wkLabel || CURRENT_WEEK;
+if (state.crLoaded) { renderThisWeek(wk); return; }
+var tb = document.getElementById('twBody');
+if (tb) tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>';
+ensureCRsLoaded(function(){ renderThisWeek(wk); });
+}
+function openPrevWeek() { openThisWeek(prevWeek(CURRENT_WEEK)); }
+function openNextWeek() { openThisWeek(nextWeek(CURRENT_WEEK)); }
 function closeThisWeek() {
 document.getElementById('twOverlay').classList.remove('open');
 }
-function renderThisWeek() {
-var wkLabel = CURRENT_WEEK;
+function renderThisWeek(wkLabel) {
+if (!wkLabel) wkLabel = CURRENT_WEEK;
 var rng = weekToDateRange(wkLabel);
 var fmt = function(d){ return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); };
 document.getElementById('twTitle').textContent = '📍 ' + wkLabel + '  ·  ' + fmt(rng.mon) + ' – ' + fmt(rng.sun);
@@ -4003,20 +4180,20 @@ infra:'background:#E5E7EB;color:#374151', sol:'background:#FCE7F3;color:#9D174D'
 cert:'background:#FEE2E2;color:#991B1B', os:'background:#EDE9FE;color:#5B21B6',
 golive:'background:#D1FAE5;color:#065F46'
 };
-var siteMap = {}, typeCounts = {}, totalActive = 0, totalDone = 0, totalFailed = 0;
-var _twSources = [{rows: state.rtpRows||[], tab:'rtp'}, {rows: state.rmsRows||[], tab:'rms'}];
+var siteMap = {}, typeCounts = {}, totalActive = 0, totalDone = 0, totalDoneIssues = 0, totalFailed = 0;
+var _twSources = [{rows: sfRowsForTab('rtp'), tab:'rtp'}, {rows: sfRowsForTab('rms'), tab:'rms'}];
 _twSources.forEach(function(src) {
 src.rows.forEach(function(r) {
 var val = r.cells[wkLabel]; if (!val) return;
-var entries = val.indexOf('||ENTRY||') !== -1 ? val.split('||ENTRY||') : [val];
+var entries = splitEntries(val);
 entries.forEach(function(entry) {
- var ps = parseStatus(entry.trim());
+ var ps = parseStatus(entry);
  if (ps.status === 'delayed' || ps.status === 'cancelled') return;
  if (ps.status === 'failed' && !ps.text) return; // keep failed entries with text
  if (!ps.text) return;
  var type = ps.type || classifyCell(ps.text) || 'sol';
  typeCounts[type] = (typeCounts[type] || 0) + 1;
- if (ps.status === 'done') totalDone++; else if (ps.status === 'failed') { totalFailed++; } else totalActive++;
+ if (ps.status === 'done') totalDone++; else if (ps.status === 'done-issues') { totalDone++; totalDoneIssues++; } else if (ps.status === 'failed') { totalFailed++; } else totalActive++;
  var _smKey = src.tab + ':' + r.site;
  if (!siteMap[_smKey]) siteMap[_smKey] = { site: r.site, pl: r.pl || '', cspoc: r.cspoc || '', tab: src.tab, entries: [] };
  siteMap[_smKey].entries.push({ text: ps.text, type: type, status: ps.status, note: ps.note || '', date: ps.date || '', tab: src.tab });
@@ -4041,7 +4218,8 @@ Object.values(siteMap).forEach(function(s) {
 var sites = Object.values(siteMap).sort(function(a,b){ return b.entries.length - a.entries.length; });
 document.getElementById('twSites').textContent  = sites.length;
 document.getElementById('twTotal').textContent  = totalActive + totalDone;
-document.getElementById('twDone').textContent   = totalDone;
+document.getElementById('twDone').textContent   = totalDone - totalDoneIssues;
+document.getElementById('twDoneIssues').textContent = totalDoneIssues;
 document.getElementById('twActive').textContent  = totalActive;
 document.getElementById('twFailed').textContent  = totalFailed || 0;
 document.getElementById('twTypeRow').innerHTML  = Object.keys(typeCounts)
@@ -4389,6 +4567,7 @@ var CR_STATUS_STYLE = {
   'Scheduled':              { bg:'#DBEAFE', fg:'#1E40AF' },
 };
 function openCRDeployment() {
+if (!_crSites) google.script.run.withSuccessHandler(function(l) { _crSites = l || []; }).withFailureHandler(function() {}).getCRSites();
 document.getElementById('crOverlay').classList.add('open');
 document.getElementById('crBody').innerHTML = '<div class="ana-loading">Loading CR deployments…</div>';
 google.script.run
@@ -4401,16 +4580,32 @@ document.getElementById('crBody').innerHTML = '<div class="ana-loading">Failed t
 function closeCRDeployment() {
 document.getElementById('crOverlay').classList.remove('open');
 }
+var _crRows = [];
 function renderCRDeployments(rows) {
 var body = document.getElementById('crBody');
 if (!rows || !rows.length) { body.innerHTML = '<div class="ana-loading">No CR deployments found</div>'; return; }
-var h = '<div class="ana-table-wrap" style="overflow-x:auto"><table class="ana-table">';
-h += '<tr><th>CR #</th><th>Deployment</th><th>Status</th><th>Start</th><th>End</th></tr>';
-rows.forEach(function(r) {
+_crRows = rows;
+var unmatched = rows.filter(function(r) { return !r.matches || !r.matches.length; });
+var h = '<div style="font-size:12px;margin:0 0 8px;color:var(--muted)">' + (rows.length - unmatched.length) + ' of ' + rows.length +
+' CRs placed on the calendar · <b>' + unmatched.length + '</b> need a site (use the box in the Site column)</div>';
+h += '<div class="ana-table-wrap" style="overflow-x:auto"><table class="ana-table">';
+h += '<tr><th>CR #</th><th>Deployment</th><th>Site</th><th>Status</th><th>Start</th><th>End</th></tr>';
+rows.forEach(function(r, i) {
 var st = CR_STATUS_STYLE[r.status] || CR_STATUS_STYLE['Scheduled'];
+var siteCell;
+if (r.matches && r.matches.length) {
+siteCell = esc(r.matches.map(function(m) { return m.site; }).filter(function(x, j, a) { return a.indexOf(x) === j; }).join(', ')) +
+' <span style="font-size:10px;color:var(--muted)">(' + esc(r.matchedBy) + ')</span>';
+} else {
+siteCell = '<div style="font-size:11px;color:#B45309;margin-bottom:3px">' + (r.candidates && r.candidates.length ? '⚠ Ambiguous' : '⚠ No site') + '</div>' +
+'<input id="crAlias'+i+'" value="'+esc(r.aliasHint || '')+'" style="width:120px;font-size:11px" title="Text from the CR subject that identifies the customer">' +
+'<select id="crSite'+i+'" style="font-size:11px;max-width:150px"><option value="">Site…</option>' + _crSiteOptions(r.candidates) + '</select>' +
+'<button class="ab-btn" style="font-size:11px;padding:1px 6px" onclick="saveCRAlias('+i+')">Save</button>';
+}
 h += '<tr>' +
-'<td style="font-weight:600">'+esc(r.crNumber)+'</td>' +
+'<td style="font-weight:600">'+(r.url ? '<a class="cr-link" href="'+esc(r.url)+'" target="_blank" rel="noopener" title="Open in Salesforce">'+esc(r.crNumber)+' ↗</a>' : esc(r.crNumber))+'</td>' +
 '<td>'+esc(r.subject)+'</td>' +
+'<td>'+siteCell+'</td>' +
 '<td><span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:'+st.bg+';color:'+st.fg+'">'+esc(r.status)+'</span></td>' +
 '<td>'+_fmtDate(r.start)+'</td>' +
 '<td>'+_fmtDate(r.end)+'</td>' +
@@ -4418,6 +4613,21 @@ h += '<tr>' +
 });
 h += '</table></div>';
 body.innerHTML = h;
+}
+var _crSites = null;
+function _crSiteOptions(candidates) {
+var list = (candidates && candidates.length) ? candidates : (_crSites || []);
+return list.map(function(s) { return '<option value="'+esc(s.tab+'|'+s.site)+'">'+esc(s.site)+' ('+s.tab.toUpperCase()+')</option>'; }).join('');
+}
+function saveCRAlias(i) {
+var alias = document.getElementById('crAlias'+i).value.trim();
+var pick  = document.getElementById('crSite'+i).value;
+if (!alias || !pick) { alert('Enter the customer text and choose a site.'); return; }
+var tab = pick.split('|')[0], site = pick.slice(pick.indexOf('|') + 1);
+google.script.run
+.withSuccessHandler(function() { loadCRDeploymentsForCalendar(); openCRDeployment(); })
+.withFailureHandler(function(e) { alert('Could not save: ' + (e && e.message ? e.message : e)); })
+.setCRAlias(alias, tab, site);
 }
 function openAnalytics() {
 document.getElementById('analyticsOverlay').classList.add('open');
@@ -4557,6 +4767,171 @@ a.href = 'data:'+mimeType+';charset=utf-8,'+encodeURIComponent(content);
 a.download = filename; a.style.display='none';
 document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
+// ── Heatmap ────────────────────────────────────────────────
+function openHeatmap() {
+  document.getElementById('heatmapOverlay').classList.add('open');
+  document.getElementById('hmBody').innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Loading…</div>';
+  ensureCRsLoaded(renderHeatmap);
+}
+function closeHeatmap() { document.getElementById('heatmapOverlay').classList.remove('open'); }
+function heatColor(i) {
+  if (i <= 0)   return { bg:'#F1F5F9', text:'#94A3B8' };
+  if (i < 0.2)  return { bg:'#DBEAFE', text:'#1E40AF' };
+  if (i < 0.4)  return { bg:'#93C5FD', text:'#1E3A8A' };
+  if (i < 0.6)  return { bg:'#3B82F6', text:'#FFFFFF' };
+  if (i < 0.8)  return { bg:'#1D4ED8', text:'#FFFFFF' };
+  return { bg:'#1E3A8A', text:'#FFFFFF' };
+}
+function showHmTip(e, text) {
+  var tip = document.getElementById('hmTooltip'); if (!tip) return;
+  tip.style.display = 'block'; tip.textContent = text;
+  tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY - 10) + 'px';
+}
+function hideHmTip() { var tip = document.getElementById('hmTooltip'); if (tip) tip.style.display = 'none'; }
+function renderHeatmap() {
+  var tab  = (document.getElementById('hmTabSel') || {}).value || 'all';
+  var rtpR = sfRowsForTab('rtp'), rmsR = sfRowsForTab('rms');
+  var rows = tab === 'rtp' ? rtpR : tab === 'rms' ? rmsR : rtpR.concat(rmsR);
+  var counts = {}, problem = {}, wkend = {}, maxCount = 0;
+  ALL_WEEKS.forEach(function(wk){ counts[wk] = 0; });
+  rows.forEach(function(r) {
+    Object.keys(r.cells || {}).forEach(function(wk) {
+      var val = r.cells[wk]; if (!val) return;
+      splitEntries(val).forEach(function(entry) {
+        var ps = parseStatus(entry);
+        if (!(ps.text || ps.type) || ps.status === 'delayed' || ps.status === 'cancelled') return;
+        counts[wk] = (counts[wk] || 0) + 1;
+        if (counts[wk] > maxCount) maxCount = counts[wk];
+        if (ps.status === 'failed' || ps.status === 'done-issues') problem[wk] = (problem[wk] || 0) + 1;
+        if (ps.date) {
+          var day = new Date(ps.date + 'T00:00:00').getDay();
+          if (day === 0 || day === 6) wkend[wk] = (wkend[wk] || 0) + 1;
+        }
+      });
+    });
+  });
+  var maxWkend = Math.max.apply(null, Object.keys(wkend).map(function(k){ return wkend[k]; }).concat([0]));
+  var legBar = document.getElementById('hmLegendBar');
+  if (legBar) legBar.innerHTML = [0,.2,.4,.6,.8,1].map(function(v) {
+    return '<div style="width:18px;height:14px;border-radius:3px;background:' + heatColor(v).bg + ';border:1px solid rgba(0,0,0,.1)"></div>';
+  }).join('');
+  var fmt = function(d){ return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); };
+  var h = '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+  ALL_WEEKS.forEach(function(wk) {
+    var rng = weekToDateRange(wk), sat = new Date(rng.mon.getTime() + 5*86400000);
+    var count = counts[wk] || 0, prob = problem[wk] || 0, wn = wkend[wk] || 0;
+    var hc = heatColor(maxCount > 0 ? count / maxCount : 0);
+    var border = wk === CURRENT_WEEK ? '2.5px solid var(--accent)' : '1px solid rgba(0,0,0,.08)';
+    var wBg, wColor, wBorder, wi = maxWkend > 0 ? wn / maxWkend : 0;
+    if (wn === 0)      { wBg='rgba(59,130,246,.08)'; wColor='#93C5FD'; wBorder='rgba(59,130,246,.15)'; }
+    else if (wi < 0.4) { wBg='rgba(251,191,36,.25)'; wColor='#B45309'; wBorder='rgba(251,191,36,.4)'; }
+    else               { wBg='rgba(239,68,68,.25)';  wColor='#B91C1C'; wBorder='rgba(239,68,68,.4)'; }
+    var tip = wk + ' | ' + count + ' changes' + (prob ? ' | ⚠ ' + prob + ' failed/issues' : '') + ' | ' + fmt(rng.mon) + ' – ' + fmt(rng.sun) + (wn ? ' | ' + wn + ' on weekend' : '');
+    h += '<div class="hm-cell" data-wk="' + esc(wk) + '" data-tip="' + esc(tip) + '" style="width:80px;border-radius:10px;overflow:hidden;cursor:pointer;border:' + border + ';flex-shrink:0;transition:transform .12s;box-shadow:0 2px 6px rgba(0,0,0,.10)">' +
+      '<div style="background:' + hc.bg + ';padding:7px 6px 5px;text-align:center">' +
+        '<div style="font-size:11px;font-weight:800;color:' + hc.text + '">' + esc(wk.replace('Week ','W').replace(' (2027)',"'27")) + '</div>' +
+        '<div style="font-size:24px;font-weight:900;line-height:1.1;color:' + hc.text + '">' + count + '</div>' +
+        (prob > 0 ? '<div style="margin-top:3px;background:#DC2626;border-radius:5px;padding:2px 5px;display:inline-flex;gap:3px"><span style="font-size:10px;color:#fff;font-weight:900">⚠</span><span style="font-size:11px;color:#fff;font-weight:800">' + prob + '</span></div>' : '<div style="height:18px"></div>') +
+        '<div style="font-size:9px;color:' + hc.text + ';opacity:.8;margin-top:3px">' + fmt(rng.mon) + '</div>' +
+      '</div>' +
+      '<div style="background:' + wBg + ';padding:3px 4px;text-align:center;border-top:1px solid ' + wBorder + '">' +
+        '<div style="font-size:9px;color:' + wColor + ';font-weight:' + (wn > 0 ? '800' : '600') + '">' + (wn > 0 ? '⚠ ' + wn + ' weekend · ' : '') + 'Sat ' + sat.getDate() + ' – Sun ' + fmt(rng.sun) + '</div>' +
+      '</div></div>';
+  });
+  h += '</div><div style="margin-top:10px;font-size:10px;color:var(--muted);text-align:center">Click any week to see its activity details</div>';
+  var body = document.getElementById('hmBody');
+  body.innerHTML = h;
+  body.onclick = function(ev) {
+    var c = ev.target.closest ? ev.target.closest('.hm-cell') : null;
+    if (!c) return;
+    hideHmTip(); closeHeatmap(); openThisWeek(c.getAttribute('data-wk'));
+  };
+  body.onmouseover = function(ev) {
+    var c = ev.target.closest ? ev.target.closest('.hm-cell') : null;
+    if (c) { c.style.transform = 'scale(1.07)'; showHmTip(ev, c.getAttribute('data-tip')); }
+  };
+  body.onmouseout = function(ev) {
+    var c = ev.target.closest ? ev.target.closest('.hm-cell') : null;
+    if (c) { c.style.transform = ''; hideHmTip(); }
+  };
+}
+
+// ── Missing links warning ──────────────────────────────────
+function _collectMissingLinks() {
+  var results = [];
+  [{ rows: state.rtpRows, tab: 'rtp' }, { rows: state.rmsRows, tab: 'rms' }].forEach(function(src) {
+    (src.rows || []).forEach(function(r) {
+      var goLiveWk = null;
+      Object.keys(r.cells || {}).forEach(function(wk) {
+        splitEntries(r.cells[wk]).forEach(function(entry) {
+          var ps = parseStatus(entry);
+          var type = ps.type || classifyCell(ps.text || '') || 'sol';
+          if (type === 'golive' && (ps.status === 'done' || ps.status === 'done-issues')) goLiveWk = wk;
+        });
+      });
+      if (!goLiveWk) return;
+      var urls = state.siteUrls[_urlKey(src.tab, r.site, r.pl)] || state.siteUrls[src.tab + '::' + r.site] || r.urls || {};
+      var missing = [];
+      if (!(urls.tower    || '').trim()) missing.push('Tower');
+      if (!(urls.md       || '').trim()) missing.push('MD Dashboard');
+      if (!(urls.butler   || '').trim()) missing.push('Butler Server');
+      if (!(urls.platform || '').trim()) missing.push('Platform');
+      if (missing.length) results.push({ site: r.site, tab: src.tab, pl: r.pl || '', goLiveWk: goLiveWk, missing: missing });
+    });
+  });
+  results.sort(function(a,b){ return a.site.localeCompare(b.site); });
+  return results;
+}
+function _updateLinksWarnBadge() {
+  var results = _collectMissingLinks();
+  window._linksWarnData = results;
+  var btn = document.getElementById('linksWarnBtn'), badge = document.getElementById('linksWarnBadge');
+  if (!btn) return;
+  if (results.length) {
+    btn.style.display = '';
+    btn.style.background = '#FEF3C7'; btn.style.color = '#92400E'; btn.style.borderColor = '#D97706';
+    if (badge) { badge.textContent = results.length; badge.style.display = ''; }
+  } else {
+    btn.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+  }
+}
+function openLinksWarningPanel() {
+  document.getElementById('linksWarnOverlay').classList.add('open');
+  _renderLinksWarningBody(_collectMissingLinks());
+}
+function closeLinksWarningPanel() { document.getElementById('linksWarnOverlay').classList.remove('open'); }
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest ? e.target.closest('.lw-setlinks') : null;
+  if (!btn) return;
+  var tab = btn.dataset.tab, site = btn.dataset.site, pl = btn.dataset.pl || '';
+  closeLinksWarningPanel();
+  if (state.currentTab !== tab) switchTab(tab);
+  _urlPopupSite = site; _urlPopupPl = pl;
+  openUrlEdit();
+});
+function _renderLinksWarningBody(data) {
+  var el = document.getElementById('linksWarnBody');
+  if (!el) return;
+  if (!data.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:#059669;font-weight:700">✅ All sites with completed Go-Live have their links set!</div>';
+    return;
+  }
+  var th = function(t, c){ return '<th style="padding:8px 12px;text-align:left;font-weight:700;color:' + (c || 'var(--muted)') + '">' + t + '</th>'; };
+  var h = '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">' + data.length + ' site' + (data.length === 1 ? '' : 's') + ' completed Go-Live but have missing links</div>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">' +
+    th('Site') + th('Tab') + th('Go-Live Week') + th('Missing Links', '#D97706') + th('Set Links') + '</tr></thead><tbody>';
+  data.forEach(function(d) {
+    var badges = d.missing.map(function(m){ return '<span style="background:#FEF3C7;color:#92400E;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;margin-right:3px">' + m + '</span>'; }).join('');
+    h += '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:10px 12px;font-weight:700">' + esc(d.site) + '<br><span style="font-size:9px;color:var(--muted);font-weight:400">' + esc(d.pl) + '</span></td>' +
+      '<td style="padding:10px 12px"><span style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:10px">' + d.tab.toUpperCase() + '</span></td>' +
+      '<td style="padding:10px 12px;color:var(--muted)">' + esc(d.goLiveWk) + '</td>' +
+      '<td style="padding:10px 12px">' + badges + '</td>' +
+      '<td style="padding:10px 12px"><button class="lw-setlinks" data-tab="' + esc(d.tab) + '" data-site="' + esc(d.site) + '" data-pl="' + esc(d.pl) + '" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid #D97706;background:#FEF3C7;color:#92400E;cursor:pointer;font-weight:700">🔗 Set Links</button></td></tr>';
+  });
+  el.innerHTML = h + '</tbody></table>';
+}
 function initDashboard() {
 var fWeek = document.getElementById('fWeek');
 if (fWeek && !fWeek.options.length) {
@@ -4570,6 +4945,7 @@ google.script.run
 .withSuccessHandler(function(email) {
 state.userEmail = email || '';
 if (email) google.script.run.logPageView(email);
+try { var _ab = document.getElementById('addSiteBtn'); if (_ab) _ab.style.display = userIsCM() ? '' : 'none'; } catch(e) {}
 // Load pending approvals for CM team members
 if (CM_TEAM_EMAILS.indexOf((email||'').toLowerCase().trim()) !== -1) {
  // Show button immediately so CM team knows the feature exists
@@ -4887,6 +5263,7 @@ body.innerHTML = h;
       <div class="tw-kpi"><strong id="twSites">—</strong><span>Sites with changes</span></div>
       <div class="tw-kpi"><strong id="twTotal">—</strong><span>Total changes</span></div>
       <div class="tw-kpi"><strong id="twDone">—</strong><span>Done ✅</span></div>
+      <div class="tw-kpi" style="border-left:3px solid #D97706"><strong id="twDoneIssues" style="color:#D97706">—</strong><span style="color:#D97706">Done ⚠ Issues</span></div>
       <div class="tw-kpi"><strong id="twActive">—</strong><span>Active ⏳</span></div>
       <div class="tw-kpi" style="border-left:3px solid #DC2626"><strong id="twFailed" style="color:#DC2626">—</strong><span style="color:#DC2626">Failed ✗</span></div>
     </div>
@@ -5030,6 +5407,7 @@ body.innerHTML = h;
         <div class="sum-kpi"><strong id="sumSites">—</strong><span>Sites</span></div>
         <div class="sum-kpi kpi-active"><strong id="sumTotal">—</strong><span>Total Changes</span></div>
         <div class="sum-kpi kpi-done"><strong id="sumDone">—</strong><span>Deployed ✓</span></div>
+        <div class="sum-kpi" style="border-left:3px solid #D97706"><strong id="sumDoneIssues" style="color:#B45309">—</strong><span style="color:#B45309;font-size:9px">Done w/Issues</span></div>
         <div class="sum-kpi kpi-active"><strong id="sumActive">—</strong><span>Upcoming</span></div>
         <div class="sum-kpi kpi-delayed" onclick="openChronicPanel()" style="cursor:pointer;border:1.5px solid transparent;border-radius:10px;transition:border-color .15s" title="Click to see recurring delays" onmouseover="this.style.borderColor='#D97706'" onmouseout="this.style.borderColor='transparent'"><strong id="sumDelayed">—</strong><span>Delayed →</span><div style="font-size:9px;color:#D97706;margin-top:2px;font-weight:600">Click to analyse ›</div></div>
         <div class="sum-kpi kpi-cancelled"><strong id="sumCancelled">—</strong><span>Cancelled</span></div>
@@ -5076,6 +5454,44 @@ body.innerHTML = h;
   </div>
 </div>
 
+<div class="summary-overlay links-overlay" id="linksWarnOverlay" onclick="if(event.target===this)closeLinksWarningPanel()">
+  <div style="background:var(--surface);border-radius:14px;max-width:860px;margin:0 auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+    <div style="background:#D97706;color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:15px;font-weight:800">🔗 Missing Links Warning</div>
+        <div style="font-size:11px;opacity:.8;margin-top:2px">Sites with completed Go-Live but missing Tower / MD / Butler / Platform links</div>
+      </div>
+      <button onclick="closeLinksWarningPanel()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="linksWarnBody" style="padding:20px 22px">Loading…</div>
+  </div>
+</div>
+
+<div class="summary-overlay heatmap-overlay" id="heatmapOverlay" onclick="if(event.target===this)closeHeatmap()">
+  <div style="background:var(--surface);border-radius:14px;max-width:1100px;margin:0 auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+    <div style="background:var(--accent);color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:15px;font-weight:800">🔥 Deployment Activity Heatmap</div>
+        <div style="font-size:11px;opacity:.8;margin-top:2px">Changes per week — darker = busier</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <select id="hmTabSel" onchange="renderHeatmap()" style="font-size:11px;padding:4px 8px;border-radius:6px;border:none;background:rgba(255,255,255,.2);color:#fff;cursor:pointer">
+          <option value="all" style="color:#000">All Sites</option>
+          <option value="rtp" style="color:#000">Advance Automations</option>
+          <option value="rms" style="color:#000">Automation Essentials</option>
+        </select>
+        <button onclick="closeHeatmap()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">✕</button>
+      </div>
+    </div>
+    <div style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:11px;color:var(--muted)">
+        <span>Fewer</span><div id="hmLegendBar" style="display:flex;gap:2px"></div><span>More changes</span>
+      </div>
+      <div id="hmBody" style="overflow-x:auto"></div>
+      <div id="hmTooltip" style="display:none;position:fixed;background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;pointer-events:none;z-index:10300"></div>
+    </div>
+  </div>
+</div>
 <script>initDashboard();</script>
 </body>
 </html>

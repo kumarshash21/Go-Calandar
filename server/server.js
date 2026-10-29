@@ -1,5 +1,7 @@
 'use strict';
+// Load project-root .env (VM) first, then server/.env (local); dotenv never overrides already-set vars
 require('dotenv').config({ path: require('path').join(__dirname,'../.env') });
+require('dotenv').config({ path: require('path').join(__dirname,'.env') });
 
 const express        = require('express');
 const NodeCache      = require('node-cache');
@@ -7,6 +9,7 @@ const path           = require('path');
 const helmet         = require('helmet');
 const compression    = require('compression');
 const pool           = require('../db/pool');
+const { matchCRs, aliasHint, activityOf, tabHint, productTab, norm } = require('./crMatch');
 
 // ── Config ────────────────────────────────────────────────────
 const PORT       = parseInt(process.env.PORT || '3000');
@@ -420,35 +423,123 @@ async function getSfToken(forceRefresh) {
 
 async function sfQuery(soql) {
   const apiVer = process.env.SF_API_VERSION || 'v60.0';
-  let token = await getSfToken(false);
-  const path = `/services/data/${apiVer}/query/?q=${encodeURIComponent(soql)}`;
-  let res = await sfGet(new URL(token.instanceUrl).hostname, path, token.accessToken);
-  if (res.status === 401) {
-    token = await getSfToken(true);
-    res = await sfGet(new URL(token.instanceUrl).hostname, path, token.accessToken);
+  let path = `/services/data/${apiVer}/query/?q=${encodeURIComponent(soql)}`;
+  const records = [];
+  while (path) {
+    let token = await getSfToken(false);
+    let res = await sfGet(new URL(token.instanceUrl).hostname, path, token.accessToken);
+    if (res.status === 401) {
+      token = await getSfToken(true);
+      res = await sfGet(new URL(token.instanceUrl).hostname, path, token.accessToken);
+    }
+    if (res.status !== 200) throw new Error(`Salesforce query failed (${res.status}): ${res.body.slice(0,200)}`);
+    const json = JSON.parse(res.body);
+    records.push(...json.records);
+    path = json.done ? null : json.nextRecordsUrl;
   }
-  if (res.status !== 200) throw new Error(`Salesforce query failed (${res.status}): ${res.body.slice(0,200)}`);
-  return JSON.parse(res.body).records;
+  return records;
 }
 
-async function getCRDeployments() {
-  const ck = 'cr_deployments';
-  const hit = cache.get(ck);
-  if (hit) return hit;
+function sfCaseUrl(caseId) {
+  if (!caseId || !process.env.SF_INSTANCE_URL) return '';
+  const host = new URL(process.env.SF_INSTANCE_URL).hostname.replace('.my.salesforce.com', '.lightning.force.com');
+  return `https://${host}/lightning/r/Case/${encodeURIComponent(caseId)}/view`;
+}
 
-  const soql = `SELECT Id, Subject, StartDateTime, EndDateTime, Case_Number__c, Closer_code_status__c
-                FROM Event WHERE Case_Number__c != null ORDER BY StartDateTime DESC LIMIT 200`;
+// CR number typed into a calendar note ("CRN#236028") -> Salesforce case link.
+const crLinkCache = {};
+async function getCRLink(crn) {
+  const num = String(crn || '').replace(/\D/g, '');
+  if (!num || num.length > 8) return '';
+  const padded = num.padStart(8, '0');
+  if (crLinkCache[padded] === undefined) {
+    const recs = await sfQuery(`SELECT Id FROM Case WHERE CaseNumber = '${padded}' LIMIT 1`);
+    crLinkCache[padded] = recs.length ? sfCaseUrl(recs[0].Id) : '';
+  }
+  return crLinkCache[padded];
+}
+
+// Calendar starts at Week 13 (23 Mar 2026); older CRs can never land on a cell.
+const CR_FROM = '2026-03-23T00:00:00Z';
+let crRaw = null; // { at, rows } — Salesforce events, refreshed every 1 min
+
+async function loadCRRaw(force) {
+  if (!force && crRaw && Date.now() - crRaw.at < 60*1000) return crRaw.rows;
+  const soql = `SELECT Id, Subject, What.Name, StartDateTime, EndDateTime, Case_Number__c, Case_Id__c, Closer_code_status__c
+                FROM Event WHERE Case_Number__c != null AND StartDateTime >= ${CR_FROM}
+                ORDER BY StartDateTime DESC`;
   const records = await sfQuery(soql);
-  const result = records.map(r => ({
+  // Change Type (GreyMatter Upgrade, Firmware Update, ...) lives on the Case, not the Event.
+  const changeType = {}, product = {};
+  const nums = [...new Set(records.map(r => r.Case_Number__c).filter(Boolean))];
+  for (let i = 0; i < nums.length; i += 150) {
+    const list = nums.slice(i, i + 150).map(n => `'${String(n).replace(/[^0-9A-Za-z]/g, '')}'`).join(',');
+    try {
+      const cases = await sfQuery(`SELECT CaseNumber, Change_Type__c, Product_Type__c FROM Case WHERE CaseNumber IN (${list})`);
+      cases.forEach(c => { changeType[c.CaseNumber] = c.Change_Type__c || ''; product[c.CaseNumber] = c.Product_Type__c || ''; });
+    } catch (e) { console.warn('[CR] change type lookup failed:', e.message); break; }
+  }
+  const rows = records.map(r => ({
     id: r.Id,
     crNumber: r.Case_Number__c || '',
     subject: r.Subject || '',
-    start: r.StartDateTime,
-    end: r.EndDateTime,
+    account: (r.What && r.What.Name) || '',
+    url: sfCaseUrl(r.Case_Id__c),
+    changeType: changeType[r.Case_Number__c] || '',
+    product: product[r.Case_Number__c] || '',
+    start: r.StartDateTime ? new Date(r.StartDateTime).toISOString() : null,
+    end:   r.EndDateTime   ? new Date(r.EndDateTime).toISOString()   : null,
     status: r.Closer_code_status__c || 'Scheduled',
   }));
-  cache.set(ck, result, 300);
-  return result;
+  crRaw = { at: Date.now(), rows };
+  return rows;
+}
+
+let aliasTableReady = false;
+async function ensureAliasTable() {
+  if (aliasTableReady) return;
+  await pool.query(`CREATE TABLE IF NOT EXISTS cr_site_alias (
+    alias TEXT NOT NULL, tab TEXT NOT NULL, site TEXT NOT NULL,
+    editor_email TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (alias, tab, site))`);
+  aliasTableReady = true;
+}
+
+async function getCRDeployments(force) {
+  const [raw, rtp, rms] = await Promise.all([loadCRRaw(!!force), readSheet('rtp'), readSheet('rms')]);
+  await ensureAliasTable();
+  const { rows: aliases } = await pool.query('SELECT alias, tab, site FROM cr_site_alias');
+  const matched = matchCRs(raw, { rtp, rms }, aliases);
+  // A Salesforce account with no calendar row still gets one (shown live, never saved): the CR's account is the site.
+  // Tab = the CR's product (RTP/TTP/Relay -> Advance Automations; RIL/RMS/RA/Casepick -> Automation Essentials).
+  return matched.map(cr => {
+    if (!cr.matches.length && !cr.candidates.length && cr.account) {
+      cr.matches = [{ tab: cr.tab || 'rtp', site: cr.account, fromSalesforce: true }];
+      cr.matchedBy = 'salesforce';
+    }
+    if (!cr.matches.length) cr.aliasHint = cr.account || aliasHint(cr.subject);
+    cr.activity = activityOf(cr.subject, cr.matches.map(m => m.site));
+    return cr;
+  });
+}
+
+// Teach the matcher that a phrase in a CR subject (e.g. "Kenco Fairlife") means a calendar row.
+async function setCRAlias(alias, tab, site, email) {
+  alias = String(alias||'').trim();
+  if (!alias || !['rtp','rms'].includes(tab)) throw new Error('alias and tab (rtp|rms) are required');
+  const row = await findSite(tab, site);
+  if (!row) throw new Error(`Unknown site "${site}" on ${tab}`);
+  await ensureAliasTable();
+  await pool.query(
+    `INSERT INTO cr_site_alias (alias, tab, site, editor_email) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+    [alias.toLowerCase(), tab, row.site, email||'']
+  );
+  return { ok:true };
+}
+
+async function getCRSites() {
+  const [rtp, rms] = await Promise.all([readSheet('rtp'), readSheet('rms')]);
+  return [].concat(rtp.map(r => ({ tab:'rtp', site:r.site })), rms.map(r => ({ tab:'rms', site:r.site })));
 }
 
 // ── Express App ───────────────────────────────────────────────
@@ -461,6 +552,10 @@ app.use(express.urlencoded({ extended:true }));
 // ── Serve dashboard ───────────────────────────────────────────
 app.get('/', (req,res)=>
   res.sendFile(path.join(__dirname,'../public/dashboard.html')));
+
+// Frontend calls /me on load; no auth in VM mode, so return an empty identity
+app.get('/me', (req,res)=> res.json({ email:'' }));
+app.get('/favicon.ico', (req,res)=> res.status(204).end());
 
 // ── API dispatcher ────────────────────────────────────────────
 app.post('/api/run', async (req,res) => {
@@ -491,7 +586,10 @@ app.post('/api/run', async (req,res) => {
       case 'getPendingChanges':       result = await getPendingChanges(); break;
       case 'approveChange':           result = await approveChange(args[0],email); break;
       case 'rejectChange':            result = await rejectChange(args[0],email); break;
-      case 'getCRDeployments':        result = await getCRDeployments(); break;
+      case 'getCRDeployments':        result = await getCRDeployments(args[0]); break;
+      case 'setCRAlias':              result = await setCRAlias(args[0],args[1],args[2],email); break;
+      case 'getCRLink':               result = await getCRLink(args[0]); break;
+      case 'getCRSites':              result = await getCRSites(); break;
       default: return res.status(400).json({ error:`Unknown method: ${method}` });
     }
     res.json({ result });
