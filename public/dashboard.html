@@ -3512,7 +3512,7 @@ function openSummary() {
 document.getElementById('summaryOverlay').classList.add('open');
 document.getElementById('sumUpdatedAt').textContent = 'Loading…';
 document.getElementById('sumTableBody').innerHTML =
-'<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">Loading data…</td></tr>';
+'<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">Loading data…</td></tr>';
 if (state.rtpRows && state.rmsRows) {
 _finishSummary();
 return;
@@ -3544,9 +3544,11 @@ tryFinish();
 }
 }
 function _finishSummary() {
+ensureCRsLoaded(function() {
 computeSummary();
 document.getElementById('sumUpdatedAt').textContent =
 'as of ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+});
 }
 function closeSummary() {
 document.getElementById('summaryOverlay').classList.remove('open');
@@ -3587,9 +3589,49 @@ if (ps.status === 'done')   site.typeDone[type]   = (site.typeDone[type]   || 0)
 if (ps.status === 'active') site.typeActive[type] = (site.typeActive[type] || 0) + 1;
 });
 });
-site.delayRate = site.total > 0 ? Math.round((site.delayed / site.total) * 100) : 0;
 _sumData.push(site);
 });
+});
+// Salesforce CRs that no sheet cell already cites (by CRN#) are counted too, same as the calendar chips.
+var sfIndex = {};
+_sumData.forEach(function(s) { sfIndex[s.tab + '||' + String(s.site).toLowerCase().trim()] = s; });
+var citedInSheet = function(n) {
+if (!n) return false;
+var re = new RegExp('CRN\\s*#?\\s*0*' + n + '(?!\\d)', 'i');
+return sources.some(function(src) {
+return (src.rows || []).some(function(r) {
+return Object.keys(r.cells).some(function(wk) { return re.test(r.cells[wk] || ''); });
+});
+});
+};
+(state.crDeployments || []).forEach(function(cr) {
+if (!cr.matches || !cr.matches.length) return;
+if (citedInSheet(String(cr.crNumber || '').replace(/^0+/, ''))) return;
+var type = CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] || 'sol';
+var st = CR_STATUS_TO_CHIP[cr.status] || 'active';
+var seen = {};
+cr.matches.forEach(function(m) {
+var k = m.tab + '||' + String(m.site).toLowerCase().trim();
+if (seen[k]) return;
+seen[k] = true;
+var site = sfIndex[k];
+if (!site) {
+site = sfIndex[k] = { site: m.site, tab: m.tab, ver: '', pl: '',
+ total:0, done:0, doneIssues:0, active:0, delayed:0, cancelled:0, failed:0,
+ types: {}, typeDone: {}, typeActive: {} };
+_sumData.push(site);
+}
+site.total++;
+var _st = st === 'done-issues' ? 'done' : st;
+site[_st] = (site[_st] || 0) + 1;
+if (st === 'done-issues') site.doneIssues++;
+site.types[type] = (site.types[type] || 0) + 1;
+if (_st === 'done')   site.typeDone[type]   = (site.typeDone[type]   || 0) + 1;
+if (_st === 'active') site.typeActive[type] = (site.typeActive[type] || 0) + 1;
+});
+});
+_sumData.forEach(function(site) {
+site.delayRate = site.total > 0 ? Math.round((site.delayed / site.total) * 100) : 0;
 });
 renderSummary();
 }
@@ -3762,7 +3804,7 @@ return '<tr>' +
 '</div>' +
 '</td>' +
 '</tr>';
-}).join('') || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No data loaded — go back to the calendar and wait for data to load first</td></tr>';
+}).join('') || '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">No data loaded — go back to the calendar and wait for data to load first</td></tr>';
 }
 function sumSort(col) {
 if (_sumSortCol === col) {
