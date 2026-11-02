@@ -396,9 +396,10 @@ th.wk-cur,.wk-hdr.wk-cur{background:#EAF3F0 !important;color:#0A6040 !important;
 .stale-toolbar{padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface2)}
 .stale-toolbar select{font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg);color:var(--text)}
 .stale-count-badge{background:#D97706;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;vertical-align:middle}
-.chip{display:inline-flex;align-items:center;justify-content:center;padding:3px 7px;border-radius:4px;font-size:10.5px;font-weight:500;font-family:var(--mono);line-height:1.3;text-align:center;cursor:pointer;transition:opacity .1s;max-width:88px;word-break:break-word;white-space:pre-line;position:relative}
+.chip{display:inline-flex;align-items:center;justify-content:center;padding:3px 7px;border-radius:4px;font-size:10.5px;font-weight:500;font-family:var(--mono);line-height:1.3;text-align:center;cursor:pointer;transition:opacity .1s;max-width:78px;margin:3px 5px;word-break:break-word;white-space:pre-line;position:relative}
 .chip:hover{opacity:.78}
-.cell-stack{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 0}
+.cell-stack{display:flex;flex-direction:column;gap:6px;align-items:center;padding:4px 0}
+.cell-stack .chip{margin:0 5px}
 .entry-list{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:8px}
 .entry-item{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:6px 8px}
 .entry-item-text{flex:1;font-size:12px;font-family:var(--mono);color:var(--text)}
@@ -658,6 +659,16 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <option value="golive">New Go-Live</option>
   </select>
 
+  <span class="filter-label">Change Category</span>
+  <select id="categoryFilter" onchange="applyFilters()">
+    <option value="">All categories</option>
+    <option value="Emergency">Emergency</option>
+    <option value="Normal">Normal</option>
+    <option value="Standard">Standard</option>
+    <option value="Urgent">Urgent</option>
+    <option value="__none__">Not set</option>
+  </select>
+
   <span class="filter-label">Month</span>
   <select id="monthFilter" onchange="applyFilters()">
     <option value="">All months</option>
@@ -732,6 +743,10 @@ text-align:center;padding:6px 0 4px;line-height:1;
         </div>
       </div>
 
+      <div class="form-row" id="fCatRow" style="display:none">
+        <label>Change Category</label>
+        <div id="fCatVal" style="font-size:13px;font-weight:600"></div>
+      </div>
       <div class="form-row" id="fTypeRow">
         <label>Update Type</label>
         <select id="fType" onchange="updateNewVerBadge()">
@@ -795,12 +810,48 @@ text-align:center;padding:6px 0 4px;line-height:1;
         if(prop in t) return t[prop];
         return function(){
           var args=Array.prototype.slice.call(arguments);
-          fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({method:prop,args:args})})
-          .then(function(r){return r.json();})
-          .then(function(d){if(d.error){if(ff)ff({message:d.error});}else{if(sf)sf(d.result);}})
-          .catch(function(e){if(ff)ff(e);});
+          var call=function(retry){
+            var tok=''; try{tok=sessionStorage.getItem('editToken')||'';}catch(e){}
+            fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json','X-Edit-Token':tok},credentials:'include',body:JSON.stringify({method:prop,args:args})})
+            .then(function(r){return r.json();})
+            .then(function(d){
+              if(d.code==='EDIT_LOCKED'&&retry){
+                askEditPassword().then(function(){call(false);}).catch(function(m){if(ff)ff({message:m||'Edit password required'});});
+                return;
+              }
+              if(d.error){if(ff)ff({message:d.error});}else{if(sf)sf(d.result);}
+            })
+            .catch(function(e){if(ff)ff(e);});
+          };
+          call(true);
         };
       }
+    });
+  }
+  function askEditPassword() {
+    return new Promise(function(resolve, reject) {
+      var ov=document.createElement('div');
+      ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center';
+      ov.innerHTML='<form style="background:#fff;color:#111;padding:22px;border-radius:12px;width:320px;max-width:90vw;font-family:inherit">'
+        +'<div style="font-weight:700;font-size:15px;margin-bottom:4px">Edit password</div>'
+        +'<div style="font-size:12px;color:#666;margin-bottom:12px">Required to add or edit calendar entries.</div>'
+        +'<input type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #ccc;border-radius:8px;font-size:13px">'
+        +'<div class="err" style="color:#B91C1C;font-size:12px;min-height:16px;margin:6px 0"></div>'
+        +'<div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="c" style="padding:7px 14px;border:1px solid #ccc;background:#fff;border-radius:8px;cursor:pointer">Cancel</button>'
+        +'<button type="submit" style="padding:7px 14px;border:0;background:#1E3A8A;color:#fff;border-radius:8px;cursor:pointer">Unlock</button></div></form>';
+      document.body.appendChild(ov);
+      var f=ov.querySelector('form'), inp=ov.querySelector('input'), err=ov.querySelector('.err');
+      inp.focus();
+      ov.querySelector('.c').onclick=function(){document.body.removeChild(ov);reject('Edit password required');};
+      f.onsubmit=function(e){
+        e.preventDefault();
+        fetch('/api/unlock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:inp.value})})
+        .then(function(r){return r.json();})
+        .then(function(d){
+          if(d.token){try{sessionStorage.setItem('editToken',d.token);}catch(x){} document.body.removeChild(ov);resolve();}
+          else{err.textContent=d.error||'Wrong password';inp.value='';inp.focus();}
+        }).catch(function(){err.textContent='Network error';});
+      };
     });
   }
   window.google={script:{run:makeRunner(null,null)}};
@@ -886,7 +937,7 @@ return String(s)
 .replace(/&/g,'&amp;').replace(/</g,'&lt;')
 .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-var state = { currentTab: 'rtp', rtpRows: null, rmsRows: null, activeType: null, activeMonth: null, sortCol: null, sortDir: 'asc', verFilter: [], pocFilter: [], redZones: {}, warRooms: {}, warRoomPeriods: {}, siteUrls: {}, userEmail: '', rzFilter: false, wrFilter: false, crDeployments: [] };
+var state = { currentTab: 'rtp', rtpRows: null, rmsRows: null, activeType: null, activeMonth: null, sortCol: null, sortDir: 'asc', verFilter: [], pocFilter: [], redZones: {}, warRooms: {}, warRoomPeriods: {}, siteUrls: {}, userEmail: '', rzFilter: false, wrFilter: false, activeCategory: '', crDeployments: [] };
 var editCtx = {};
 var _loadAttempt = 0;
 function loadTab(tab) {
@@ -944,7 +995,7 @@ else                    state.rmsRows = r;
 _applyUrlsFromRows(otherTab, r); _updateLinksWarnBadge();
 })
 .withFailureHandler(function(){})
-.readSheet(otherTab);
+.readSites(otherTab);
 }
 })
 .withFailureHandler(function(err) {
@@ -952,7 +1003,7 @@ _doLoadInProgress = false;
 document.getElementById('tableWrap').innerHTML =
 '<div class="loader"><div style="color:#B02020;font-size:13px;max-width:400px;text-align:center">⚠ ' + err.message + '</div></div>';
 })
-.readSheet(tab);
+.readSites(tab);
 } catch(e) {
 _loadAttempt++;
 if (_loadAttempt <= 5) {
@@ -1000,7 +1051,7 @@ document.getElementById('lastSync').textContent = 'Live sync ' + new Date().toLo
 }
 })
 .withFailureHandler(function() { /* silent */ })
-.readSheet(_pollTab);
+.readSites(_pollTab);
 }, 60000);
 }
 function stopPolling() {
@@ -1016,6 +1067,7 @@ state.activeType = null;
 setFilterBtn('rzFilterBtn','rzFilterLabel',false,{},'Red Zone','Red Zone ✓');
 setFilterBtn('wrFilterBtn','wrFilterLabel',false,{},'War Room','War Room ✓');
 var tf = document.getElementById('typeFilter'); if (tf) tf.value = '';
+state.activeCategory = ''; var cf = document.getElementById('categoryFilter'); if (cf) cf.value = '';
 document.querySelectorAll('.leg').forEach(function(l){ l.classList.remove('active'); });
 var sb = document.getElementById('searchSuggestions'); if (sb) sb.style.display='none';
 state.currentTab = tab;
@@ -1085,7 +1137,7 @@ var d = new Date(iso);
 if (isNaN(d)) return null;
 return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-// Salesforce accounts that have no row in the sheet get a read-only row of their own.
+// Salesforce accounts that have no calendar row get a read-only row of their own.
 function withSfRows(rows, tab) {
 var have = {};
 rows.forEach(function(r) { have[String(r.site).toLowerCase().trim()] = true; });
@@ -1101,6 +1153,12 @@ extra.push({ site: m.site, pl: '', ver: '', cspoc: '', cells: {}, sf: true });
 extra.sort(function(a, b) { return a.site.localeCompare(b.site); });
 return rows.concat(extra);
 }
+// Change Category filter (Emergency / Normal / Standard / Urgent / Not set); applies to Salesforce CRs only.
+function crInCategory(cr) {
+var c = state.activeCategory;
+if (!c) return true;
+return c === '__none__' ? !cr.changeCategory : cr.changeCategory === c;
+}
 function crMatchesForCell(site, week, cellVal) {
 if (!site || !week || !state.crDeployments.length) return [];
 var siteNorm = site.toLowerCase().trim();
@@ -1109,6 +1167,7 @@ return state.crDeployments.filter(function(cr) {
 if (!cr.start || !cr.matches || !cr.matches.length) return false;
 if (!cr.matches.some(function(m) { return m.tab === tab && m.site.toLowerCase().trim() === siteNorm; })) return false;
 if (dateToWeek(crLocalDate(cr.start)) !== week) return false;
+if (!crInCategory(cr)) return false;
 // The cell's own entry already cites this CR — don't draw a second chip for it.
 var n = String(cr.crNumber || '').replace(/^0+/, '');
 if (n && cellVal && new RegExp('CRN\\s*#?\\s*0*' + n + '(?!\\d)', 'i').test(cellVal)) return false;
@@ -1117,7 +1176,7 @@ return true;
 }
 var CR_CHANGE_TYPE_TO_CHIP = { 'greymatter upgrade':'gm', 'hotfix upgrade':'gm', 'firmware update':'firmware', 'infra update':'infra', 'tool update':'sol', 'configuration update':'sol', 'solution modification':'sol' };
 var CR_STATUS_TO_CHIP = { 'Successful':'done', 'Successful with Issues':'done-issues', 'Failed':'failed', 'Cancelled':'cancelled' };
-// Salesforce CR -> same entry encoding the sheet cells use, so it renders as a normal chip.
+// Salesforce CR -> same entry encoding the calendar cells use, so it renders as a normal chip.
 function crToEntry(cr) {
 var text = String(cr.activity || cr.subject || '').trim() || ('CR ' + (cr.crNumber || ''));
 var enc = encodeStatus(CR_STATUS_TO_CHIP[cr.status] || 'active', text, '', 'CRN#' + String(cr.crNumber || '').replace(/^0+/, '') + ' (Salesforce)', CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] || null, crLocalDate(cr.start));
@@ -1355,7 +1414,7 @@ if (row) row.cells[origWeek] = savedOrigVal;
 google.script.run
 .withSuccessHandler(function() {
 if (row) row.cells[newWeek] = savedNewVal;
-// Force a fresh reload from sheet to avoid stale cell data on future operations
+// Force a fresh reload from the server to avoid stale cell data on future operations
 state.rtpRows = null; state.rmsRows = null;
 loadTab(state.currentTab);
 setMsg('✓ Marked delayed & rescheduled to ' + newWeek, 'ok');
@@ -2145,7 +2204,7 @@ rows.forEach(function(r) {
     });
   });
 });
-// Salesforce CRs aren't in the sheet cells — add the ones of this type that no cell already cites.
+// Salesforce CRs aren't in the calendar cells — add the ones of this type that no cell already cites.
 var CR_POPUP_STATUS = { 'Successful':'done', 'Successful with Issues':'done', 'Scheduled':'active' };
 var rowByKey = {};
 rows.forEach(function(r) { rowByKey[String(r.site).toLowerCase().trim()] = r; });
@@ -2293,6 +2352,7 @@ _updateStaleBadge();
 var q     = (document.getElementById('searchInput').value || '').toLowerCase();
 var type  = (document.getElementById('typeFilter').value  || '');
 var month = (document.getElementById('monthFilter').value || '');
+state.activeCategory = (document.getElementById('categoryFilter').value || '');
 var data  = state.currentTab === 'rtp' ? state.rtpRows : state.rmsRows;
 if (!data) return;
 var filtered = withSfRows(data, state.currentTab);
@@ -2302,6 +2362,14 @@ if (q) {
 filtered = filtered.filter(function(r) {
 return r.site.toLowerCase().indexOf(q) !== -1;
 });
+}
+if (state.activeCategory) {
+var catSites = {};
+(state.crDeployments || []).forEach(function(cr) {
+if (!cr.start || !crInCategory(cr)) return;
+(cr.matches || []).forEach(function(m) { if (m.tab === state.currentTab) catSites[String(m.site).toLowerCase().trim()] = true; });
+});
+filtered = filtered.filter(function(r) { return catSites[String(r.site).toLowerCase().trim()]; });
 }
 if (type) {
 filtered = filtered.filter(function(r) {
@@ -2502,7 +2570,7 @@ var urlBtnCls = 'site-link-btn' + (hasUrls ? ' has-urls' : '');
 var urlBtnTitle = hasUrls ? 'Site links' : 'Add site links';
 h += '<td class="fixed sc1 site-name" data-sitekey="' + siteKey + '">' +
 esc(row.site) + rzBadge + wrBadge +
-(row.sf ? '<div class="pl-subtitle" title="This site exists only in Salesforce — not on the sheet">☁ Salesforce</div>' : (row.pl ? '<div class="pl-subtitle">'+esc(row.pl)+'</div>' : '')) +
+(row.sf ? '<div class="pl-subtitle" title="This site exists only in Salesforce — not in the calendar">☁ Salesforce</div>' : (row.pl ? '<div class="pl-subtitle">'+esc(row.pl)+'</div>' : '')) +
 (row.sf ? '' : '<button class="' + urlBtnCls + '" data-urlsite="' + esc(row.site) + '" data-urlpl="' + esc(row.pl||'') + '" title="' + urlBtnTitle + '">🔗</button>') +
 '</td>';
 h += '<td class="fixed sc2 cspoc-cell"><input class="cspoc-input" data-site="' + esc(row.site) + '" data-tab="' + state.currentTab + '" value="' + esc(row.cspoc || '') + '"' + (row.sf ? ' disabled' : '') + ' placeholder="—" onblur="saveCSPOC(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}"/></td>';
@@ -2587,7 +2655,7 @@ var getAbsWk2 = function(wkStr) {
 var wkAbs2 = getAbsWk2(cellWk);
 var curWkAbs2 = getAbsWk2(CURRENT_WEEK);
 var staleClass = (wkAbs2 < curWkAbs2 && ps2.status === 'active') ? ' stale-active' : '';
-h += '<div class="chip ' + cls2 + sc2 + (entryIdx >= sfStart ? ' sf-cr' : '') + staleClass + dimmed + '" title="' + esc(tip2) + (staleClass ? ' Past week still active' : '') + '" data-entrykey="' + entryKey + '">' + body2 + '</div>';
+h += '<div class="chip ' + cls2 + sc2 + (entryIdx >= sfStart ? ' sf-cr' : '') + staleClass + (state.activeCategory && entryIdx < sfStart ? ' chip-dim' : dimmed) + '" title="' + esc(tip2) + (staleClass ? ' Past week still active' : '') + '" data-entrykey="' + entryKey + '">' + body2 + '</div>';
 });
 if (entries.length > 1) {
 h += '</div>';
@@ -2636,7 +2704,7 @@ wrap2._clickHandler = function(ev) {
 var td = ev.target.closest ? ev.target.closest('td[data-cellkey]') : null;
 if (!td) return;
 var ck = td.getAttribute('data-cellkey');
-if (ck && _cellReg[ck] && _cellReg[ck].sf) return; // Salesforce-only site: nothing on the sheet to edit
+if (ck && _cellReg[ck] && _cellReg[ck].sf) return; // Salesforce-only site: nothing in the calendar to edit
 if (ck) openEditByKey(ck);
 };
 wrap2.addEventListener('click', wrap2._clickHandler);
@@ -2739,7 +2807,7 @@ updateNewVerBadge();
 document.getElementById('fDetail').placeholder          = 'e.g. Go-Live v7.6.0, initial deployment…';
 document.getElementById('statusBtnRow').style.display   = 'none';
 document.getElementById('modalTitle').textContent       = '🚀 New Site Go-Live';
-document.getElementById('modalSub').textContent         = 'Creates a new row in the calendar sheet';
+document.getElementById('modalSub').textContent         = 'Creates a new row in the calendar';
 setMsg('', '');
 var delBtn2 = document.getElementById('deleteEntryBtn');
 if (delBtn2) delBtn2.style.display = 'none';
@@ -2750,12 +2818,30 @@ function openNewSiteIfAllowed() {
   else alert('Adding new sites is restricted to the CM team.');
 }
 function openAdd() { openAddUpdate(); }
+var CAT_COLORS = {
+  emergency: 'background:#FFEDD5;color:#C2410C',
+  urgent:    'background:#FEE2E2;color:#991B1B',
+  normal:    'background:#DBEAFE;color:#1D4ED8',
+  standard:  'background:#D1FAE5;color:#065F46'
+};
+function catStyle(c) { return CAT_COLORS[String(c || '').toLowerCase()] || 'background:#E5E7EB;color:#374151'; }
+function crCategoryFor(crn) {
+var n = String(crn || '').replace(/\D/g, '').replace(/^0+/, '');
+if (!n) return '';
+var hit = state.crDeployments.filter(function(cr) { return String(cr.crNumber || '').replace(/^0+/, '') === n; })[0];
+return (hit && hit.changeCategory) || '';
+}
+function catBadge(crn) {
+var c = crCategoryFor(crn);
+return c ? '<span style="'+catStyle(c)+';font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap">'+esc(c)+'</span>' : '<span style="font-size:10px;color:var(--muted)">—</span>';
+}
 function crLinkHtml(num, url) {
 var label = 'CRN#' + String(num || '').replace(/^0+/, '');
 return url ? '<a class="cr-link" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(label) + ' ↗ open in Salesforce</a>' : esc(label);
 }
 // Show the CR number in the popup as a Salesforce link (looks the case up if we only have the number).
 function showCrLink(num, url) {
+var _cr = document.getElementById('fCatRow'); if (_cr) _cr.style.display = 'none';
 var row = document.getElementById('fCrRow'), box = document.getElementById('fCrLink');
 if (!num) { row.style.display = 'none'; return; }
 row.style.display = '';
@@ -2786,6 +2872,10 @@ document.getElementById('fNotes').value = [cr.status || 'Scheduled', fmt(cr.star
 _modalEntries = [cr.subject || parsed.text];
 renderEntryList();
 showCrLink(cr.crNumber, cr.url);
+var catRow = document.getElementById('fCatRow');
+catRow.style.display = '';
+var catEl = document.getElementById('fCatVal');
+catEl.innerHTML = '<span style="' + catStyle(cr.changeCategory) + ';font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px">' + esc(cr.changeCategory || 'Not set') + '</span>';
 }
 function openEditEntry(site, week, fullCellVal, entryVal) {
 openEdit(site, week, entryVal);
@@ -3052,7 +3142,7 @@ if (detail) nr.cells[week] = detail;
 rows.push(nr);
 }
 applyFilters();
-setMsg('✓ Saved to Google Sheet', 'ok');
+setMsg('✓ Saved', 'ok');
 document.getElementById('lastSync').textContent = 'Synced ' + new Date().toLocaleTimeString();
 if (state.userEmail) google.script.run.logAction(state.userEmail, editCtx.isNewSite ? 'add_site' : 'cell_edit', state.currentTab, site + ' | ' + week + ' | ' + (editCtx.status||'active'));
 setTimeout(closeModal, 1400);
@@ -3303,7 +3393,7 @@ var fields = getUrlFieldsForSite(site, pl || _urlPopupPl);
 var modalBody = document.querySelector('#urlOverlay .modal-body');
 if (modalBody) {
 var typeOptions = [
-{ val: '',          label: 'Auto-detect from sheet' },
+{ val: '',          label: 'Auto-detect from calendar' },
 { val: 'default',   label: 'Advance Automations'              },
 { val: 'rms',       label: 'RMS'                    },
 { val: 'ril',       label: 'RIL'                    },
@@ -3530,7 +3620,7 @@ state.rtpRows = rows;
 tryFinish();
 })
 .withFailureHandler(function() { tryFinish(); })
-.readSheet('rtp');
+.readSites('rtp');
 }
 if (!state.rmsRows) {
 pending++;
@@ -3540,7 +3630,7 @@ state.rmsRows = rows;
 tryFinish();
 })
 .withFailureHandler(function() { tryFinish(); })
-.readSheet('rms');
+.readSites('rms');
 }
 }
 function _finishSummary() {
@@ -3592,10 +3682,10 @@ if (ps.status === 'active') site.typeActive[type] = (site.typeActive[type] || 0)
 _sumData.push(site);
 });
 });
-// Salesforce CRs that no sheet cell already cites (by CRN#) are counted too, same as the calendar chips.
+// Salesforce CRs that no calendar cell already cites (by CRN#) are counted too, same as the calendar chips.
 var sfIndex = {};
 _sumData.forEach(function(s) { sfIndex[s.tab + '||' + String(s.site).toLowerCase().trim()] = s; });
-var citedInSheet = function(n) {
+var citedInCalendar = function(n) {
 if (!n) return false;
 var re = new RegExp('CRN\\s*#?\\s*0*' + n + '(?!\\d)', 'i');
 return sources.some(function(src) {
@@ -3606,7 +3696,7 @@ return Object.keys(r.cells).some(function(wk) { return re.test(r.cells[wk] || ''
 };
 (state.crDeployments || []).forEach(function(cr) {
 if (!cr.matches || !cr.matches.length) return;
-if (citedInSheet(String(cr.crNumber || '').replace(/^0+/, ''))) return;
+if (citedInCalendar(String(cr.crNumber || '').replace(/^0+/, ''))) return;
 var type = CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] || 'sol';
 var st = CR_STATUS_TO_CHIP[cr.status] || 'active';
 var seen = {};
@@ -4012,7 +4102,7 @@ if (tab === 'rtp') state.rtpRows = rows; else state.rmsRows = rows;
 if (--pending === 0) finish();
 })
 .withFailureHandler(function(){ if (--pending === 0) finish(); })
-.readSheet(tab);
+.readSites(tab);
 });
 }
 function _finishStalePanel() {
@@ -4330,7 +4420,7 @@ if (e.status==='failed') {
  var ftypeStyle=TYPE_COLORS[e.type]||'background:#E5E7EB;color:#374151';
  var ftypeBadge='<span style="'+ftypeStyle+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap">'+esc(ftypeName)+'</span>';
  var fdateFmt=e.date?new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'—';
- failedRows.push('<tr style="background:#FFF8F8"><td style="font-weight:600;color:#991B1B">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+fchip+'</td><td>'+ftypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+fdateFmt+'</td><td>'+fcrnBadge+'</td></tr>');
+ failedRows.push('<tr style="background:#FFF8F8"><td style="font-weight:600;color:#991B1B">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+fchip+'</td><td>'+ftypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+fdateFmt+'</td><td>'+fcrnBadge+'</td><td>'+catBadge(fcrn)+'</td></tr>');
 } else if (e.status==='done') {
  var dcrn=extractCRN(e.note);
  var dcrnBadge=dcrn?'<span style="font-size:10px;font-weight:600;color:#059669;background:#D1FAE5;padding:2px 8px;border-radius:4px" title="'+esc(e.note)+'">'+esc(dcrn)+'</span>':'<span style="font-size:10px;color:var(--muted)">—</span>';
@@ -4338,7 +4428,7 @@ if (e.status==='failed') {
  var dtypeStyle = TYPE_COLORS[e.type] || 'background:#E5E7EB;color:#374151';
  var dtypeBadge = '<span style="'+dtypeStyle+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap">'+esc(dtypeName)+'</span>';
  var ddateFmt = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
- doneRows.push('<tr><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+chip+'</td><td>'+dtypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+ddateFmt+'</td><td>'+dcrnBadge+'</td></tr>');
+ doneRows.push('<tr><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+chip+'</td><td>'+dtypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+ddateFmt+'</td><td>'+dcrnBadge+'</td><td>'+catBadge(dcrn)+'</td></tr>');
 } else {
  var crn = extractCRN(e.note);
  var crnBadge = crn ? '<span style="font-size:10px;font-weight:600;color:#1D4ED8;background:#EFF6FF;padding:2px 8px;border-radius:4px" title="'+esc(e.note)+'">'+esc(crn)+'</span>' : '<span style="font-size:10px;color:var(--muted)">—</span>';
@@ -4346,32 +4436,32 @@ if (e.status==='failed') {
  var atypeStyle = TYPE_COLORS[e.type] || 'background:#E5E7EB;color:#374151';
  var atypeBadge = '<span style="'+atypeStyle+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap">'+esc(atypeName)+'</span>';
  var adateFmt = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
- activeRows.push('<tr><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+chip+'</td><td>'+atypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+adateFmt+'</td><td>'+crnBadge+'</td></tr>');
+ activeRows.push('<tr><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+chip+'</td><td>'+atypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+adateFmt+'</td><td>'+crnBadge+'</td><td>'+catBadge(crn)+'</td></tr>');
 }
 });
 });
 var SH = '<tr style="background:var(--surface2)">';
 var TH = 'style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left"';
 var SEC = 'style="padding:8px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2)"';
-var h = '<tr><td colspan="6" '+SEC+' style="padding:8px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);color:var(--accent)">⏳ Active / Pending ('+activeRows.length+')</td></tr>';
+var h = '<tr><td colspan="7" '+SEC+' style="padding:8px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);color:var(--accent)">⏳ Active / Pending ('+activeRows.length+')</td></tr>';
 if (activeRows.length) {
-h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:175px">Site</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:75px">POC</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:95px">Change Type</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">Date</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">CRN / Ticket</th></tr>'+activeRows.join('');
+h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:175px">Site</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:75px">POC</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:95px">Change Type</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">Date</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">CRN / Ticket</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:90px">Change Category</th></tr>'+activeRows.join('');
 } else {
-h += '<tr><td colspan="6" style="padding:10px 12px;color:var(--muted);font-size:11px;font-style:italic">No pending changes.</td></tr>';
+h += '<tr><td colspan="7" style="padding:10px 12px;color:var(--muted);font-size:11px;font-style:italic">No pending changes.</td></tr>';
 }
 // ── COMPLETED section (Done ✅ + Failed ✗ = all closed changes) ──
 var totalCompleted = doneRows.length + failedRows.length;
-h += '<tr><td colspan="6" style="padding:10px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:#F0FDF4;color:#065F46">✔ Completed ('+totalCompleted+') — Done: '+doneRows.length+' | Failed: '+failedRows.length+'</td></tr>';
+h += '<tr><td colspan="7" style="padding:10px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:#F0FDF4;color:#065F46">✔ Completed ('+totalCompleted+') — Done: '+doneRows.length+' | Failed: '+failedRows.length+'</td></tr>';
 if (doneRows.length) {
- h += '<tr style="background:#F0FDF4"><td colspan="6" style="padding:4px 14px;font-size:9px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.4px">✅ Done — Deployed Successfully</td></tr>';
- h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">POC</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+SH+doneRows.join('');
+ h += '<tr style="background:#F0FDF4"><td colspan="7" style="padding:4px 14px;font-size:9px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.4px">✅ Done — Deployed Successfully</td></tr>';
+ h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">POC</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:90px">Change Category</th>'+SH+doneRows.join('');
 }
 if (failedRows.length) {
- h += '<tr style="background:#FFF8F8"><td colspan="6" style="padding:4px 14px;font-size:9px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:.4px">✗ Failed — Deployed Unsuccessfully</td></tr>';
- h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">POC</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+SH+failedRows.join('');
+ h += '<tr style="background:#FFF8F8"><td colspan="7" style="padding:4px 14px;font-size:9px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:.4px">✗ Failed — Deployed Unsuccessfully</td></tr>';
+ h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">POC</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:90px">Change Category</th>'+SH+failedRows.join('');
 }
 if (!totalCompleted) {
- h += '<tr><td colspan="6" style="padding:10px 12px;color:var(--muted);font-size:11px;font-style:italic">Nothing completed yet this week.</td></tr>';
+ h += '<tr><td colspan="7" style="padding:10px 12px;color:var(--muted);font-size:11px;font-style:italic">Nothing completed yet this week.</td></tr>';
 }
 tbody.innerHTML = h;
 }
@@ -5145,25 +5235,7 @@ google.script.run.withSuccessHandler(function(res){if(res&&res.error)alert(res.e
   </div>
 </div>
 
-<script>function runRepair() {
-var btn = document.getElementById('repairBtn');
-if (btn) { btn.textContent = '⏳ Fixing…'; btn.disabled = true; }
-google.script.run
-.withSuccessHandler(function(result) {
-if (btn) { btn.textContent = '✓ Fixed'; btn.style.background='#DCFCE7'; btn.style.borderColor='#86EFAC'; btn.style.color='#14532D'; }
-alert('Fixed ' + (result.fixed||0) + ' rows, deleted ' + (result.deleted||0) + ' blank rows.\nReloading War Room data…');
-state.warRooms = {};
-state.redZones = {};
-_statusLoaded  = {};
-loadCombinedStatus(state.currentTab, function() { applyFilters(); });
-})
-.withFailureHandler(function(err) {
-if (btn) { btn.textContent = '❌ Error'; btn.disabled = false; }
-alert('Error: ' + err.message);
-})
-.repairWarRoomSheet();
-}
-function openAuditLog() {
+<script>function openAuditLog() {
 var overlay = document.getElementById('auditOverlay');
 var panel   = overlay.querySelector('.audit-panel');
 panel.style.left      = '50%';

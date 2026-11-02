@@ -8,6 +8,7 @@ const NodeCache      = require('node-cache');
 const path           = require('path');
 const helmet         = require('helmet');
 const compression    = require('compression');
+const crypto         = require('crypto');
 const pool           = require('../db/pool');
 const { matchCRs, aliasHint, activityOf, tabHint, productTab, norm } = require('./crMatch');
 
@@ -41,8 +42,8 @@ async function findSite(tab, site) {
   return rows.find(r => normSite(r.site) === normSite(site));
 }
 
-// ── readSheet ─────────────────────────────────────────────────
-async function readSheet(tab) {
+// ── readSites ─────────────────────────────────────────────────
+async function readSites(tab) {
   const ck = cacheKey(tab);
   const hit = cache.get(ck);
   if (hit) return hit;
@@ -205,7 +206,7 @@ async function getAuditForDateRange(startIso, endIso) {
 // ── Red Zone / War Room ────────────────────────────────────────
 // NOTE: intentionally not filtered by tab and RZ never clears once set
 // true — this mirrors the exact (buggy) behaviour of the original
-// Sheets-backed implementation, which is preserved here on purpose.
+// original (pre-Postgres) implementation, which is preserved here on purpose.
 async function getCombinedStatus(tab) {
   const ck = 'cs_'+tab; const hit = cache.get(ck); if (hit) return hit;
 
@@ -251,7 +252,7 @@ async function cancelWarRoom(tab, site, email) {
 
 // ── Site URLs ─────────────────────────────────────────────────
 async function getSiteUrlsForTab(tab) {
-  const rows = await readSheet(tab); const map = {};
+  const rows = await readSites(tab); const map = {};
   rows.forEach(r => { map[r.site] = r.urls; });
   return map;
 }
@@ -469,6 +470,9 @@ async function getCRLink(crn) {
 
 // Calendar starts at Week 13 (23 Mar 2026); older CRs can never land on a cell.
 const CR_FROM = '2026-03-23T00:00:00Z';
+// Before June 2026 many closed cases never got a Closure Code: a Solved/Closed case counts as completed.
+const CR_LEGACY_BEFORE = '2026-06-01T00:00:00Z';
+const legacyClosed = c => /^(solved|closed)$/i.test(c.Status || '') && new Date(c.Planned_Start__c) < new Date(CR_LEGACY_BEFORE);
 let crRaw = null; // { at, rows } — Salesforce events, refreshed every 1 min
 
 async function loadCRRaw(force) {
@@ -478,13 +482,13 @@ async function loadCRRaw(force) {
                 ORDER BY StartDateTime DESC`;
   const records = await sfQuery(soql);
   // Change Type (GreyMatter Upgrade, Firmware Update, ...) lives on the Case, not the Event.
-  const changeType = {}, product = {};
+  const changeType = {}, product = {}, category = {};
   const nums = [...new Set(records.map(r => r.Case_Number__c).filter(Boolean))];
   for (let i = 0; i < nums.length; i += 150) {
     const list = nums.slice(i, i + 150).map(n => `'${String(n).replace(/[^0-9A-Za-z]/g, '')}'`).join(',');
     try {
-      const cases = await sfQuery(`SELECT CaseNumber, Change_Type__c, Product_Type__c FROM Case WHERE CaseNumber IN (${list})`);
-      cases.forEach(c => { changeType[c.CaseNumber] = c.Change_Type__c || ''; product[c.CaseNumber] = c.Product_Type__c || ''; });
+      const cases = await sfQuery(`SELECT CaseNumber, Change_Type__c, Product_Type__c, Change_Category__c FROM Case WHERE CaseNumber IN (${list})`);
+      cases.forEach(c => { changeType[c.CaseNumber] = c.Change_Type__c || ''; product[c.CaseNumber] = c.Product_Type__c || ''; category[c.CaseNumber] = c.Change_Category__c || ''; });
     } catch (e) { console.warn('[CR] change type lookup failed:', e.message); break; }
   }
   const rows = records.map(r => ({
@@ -495,10 +499,51 @@ async function loadCRRaw(force) {
     url: sfCaseUrl(r.Case_Id__c),
     changeType: changeType[r.Case_Number__c] || '',
     product: product[r.Case_Number__c] || '',
+    changeCategory: category[r.Case_Number__c] || '',
     start: r.StartDateTime ? new Date(r.StartDateTime).toISOString() : null,
     end:   r.EndDateTime   ? new Date(r.EndDateTime).toISOString()   : null,
     status: r.Closer_code_status__c || 'Scheduled',
   }));
+  // Cases with no Event on the calendar: Planned Start / Actual End on the Case are the only dates; blank when empty.
+  const seen = new Set(rows.map(r => r.crNumber));
+  try {
+    const orphans = await sfQuery(`SELECT Id, CaseNumber, Subject, Account.Name, Planned_Start__c, Actual_End_Time__c, Change_Type__c, Product_Type__c, Change_Category__c, Closure_Code__c, Status
+                                   FROM Case WHERE Planned_Start__c >= ${CR_FROM} ORDER BY Planned_Start__c DESC`);
+    orphans.filter(c => !seen.has(c.CaseNumber)).forEach(c => rows.push({
+      id: c.Id,
+      crNumber: c.CaseNumber || '',
+      subject: c.Subject || '',
+      account: (c.Account && c.Account.Name) || '',
+      url: sfCaseUrl(c.Id),
+      changeType: c.Change_Type__c || '',
+      product: c.Product_Type__c || '',
+      changeCategory: c.Change_Category__c || '',
+      start: c.Planned_Start__c ? new Date(c.Planned_Start__c).toISOString() : null,
+      end:   c.Actual_End_Time__c ? new Date(c.Actual_End_Time__c).toISOString() : null,
+      status: c.Closure_Code__c || (legacyClosed(c) ? 'Successful' : 'Scheduled'),
+    }));
+  } catch (e) { console.warn('[CR] case-only lookup failed:', e.message); }
+  // Open Change Request cases with no Planned Start yet (Deployment Dates blank) are shown in the current week.
+  try {
+    const undated = await sfQuery(`SELECT Id, CaseNumber, Subject, Account.Name, Change_Type__c, Product_Type__c, Change_Category__c, Closure_Code__c, Status
+                                   FROM Case WHERE RecordType.Name = 'Change Request' AND Planned_Start__c = null
+                                   AND IsClosed = false AND CreatedDate >= ${CR_FROM} ORDER BY CreatedDate DESC`);
+    const have = new Set(rows.map(r => r.crNumber));
+    const now = new Date().toISOString();
+    undated.filter(c => !have.has(c.CaseNumber)).forEach(c => rows.push({
+      id: c.Id,
+      crNumber: c.CaseNumber || '',
+      subject: c.Subject || '',
+      account: (c.Account && c.Account.Name) || '',
+      url: sfCaseUrl(c.Id),
+      changeType: c.Change_Type__c || '',
+      product: c.Product_Type__c || '',
+      changeCategory: c.Change_Category__c || '',
+      start: now,
+      end: null,
+      status: c.Closure_Code__c || 'Scheduled',
+    }));
+  } catch (e) { console.warn('[CR] undated case lookup failed:', e.message); }
   crRaw = { at: Date.now(), rows };
   return rows;
 }
@@ -514,7 +559,7 @@ async function ensureAliasTable() {
 }
 
 async function getCRDeployments(force) {
-  const [raw, rtp, rms] = await Promise.all([loadCRRaw(!!force), readSheet('rtp'), readSheet('rms')]);
+  const [raw, rtp, rms] = await Promise.all([loadCRRaw(!!force), readSites('rtp'), readSites('rms')]);
   await ensureAliasTable();
   const { rows: aliases } = await pool.query('SELECT alias, tab, site FROM cr_site_alias');
   const matched = matchCRs(raw, { rtp, rms }, aliases);
@@ -546,7 +591,7 @@ async function setCRAlias(alias, tab, site, email) {
 }
 
 async function getCRSites() {
-  const [rtp, rms] = await Promise.all([readSheet('rtp'), readSheet('rms')]);
+  const [rtp, rms] = await Promise.all([readSites('rtp'), readSites('rms')]);
   return [].concat(rtp.map(r => ({ tab:'rtp', site:r.site })), rms.map(r => ({ tab:'rms', site:r.site })));
 }
 
@@ -556,6 +601,40 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(express.json({ limit:'2mb' }));
 app.use(express.urlencoded({ extended:true }));
+
+// ── Edit password ─────────────────────────────────────────────
+// Adding/editing a calendar entry needs a short-lived token from /api/unlock.
+const EDIT_PASSWORD   = process.env.EDIT_PASSWORD || '';
+const EDIT_TOKEN_SECRET = crypto.randomBytes(32);   // per-process: tokens expire on restart
+const EDIT_TOKEN_TTL  = 8 * 3600 * 1000;
+const EDIT_METHODS    = new Set(['updateCell', 'addSiteRow', 'submitForApproval']);
+
+function safeEq(a, b) {
+  const ha = crypto.createHash('sha256').update(String(a)).digest();
+  const hb = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+function signEditToken(exp) {
+  const sig = crypto.createHmac('sha256', EDIT_TOKEN_SECRET).update(String(exp)).digest('hex');
+  return exp + '.' + sig;
+}
+function validEditToken(tok) {
+  const [exp, sig] = String(tok || '').split('.');
+  if (!exp || !sig || Number(exp) < Date.now()) return false;
+  return safeEq(signEditToken(exp).split('.')[1], sig);
+}
+const unlockAttempts = {};   // ip -> { n, until }
+app.post('/api/unlock', (req, res) => {
+  if (!EDIT_PASSWORD) return res.status(503).json({ error: 'EDIT_PASSWORD is not set on the server' });
+  const a = unlockAttempts[req.ip] || (unlockAttempts[req.ip] = { n: 0, until: 0 });
+  if (a.until > Date.now()) return res.status(429).json({ error: 'Too many attempts, try again later' });
+  if (!safeEq(req.body && req.body.password, EDIT_PASSWORD)) {
+    if (++a.n >= 5) { a.n = 0; a.until = Date.now() + 5 * 60 * 1000; }
+    return res.status(401).json({ error: 'Wrong password' });
+  }
+  a.n = 0;
+  res.json({ token: signEditToken(Date.now() + EDIT_TOKEN_TTL) });
+});
 
 // ── Serve dashboard ───────────────────────────────────────────
 app.get('/', (req,res)=>
@@ -569,11 +648,14 @@ app.get('/favicon.ico', (req,res)=> res.status(204).end());
 app.post('/api/run', async (req,res) => {
   const { method, args=[] } = req.body;
   const email = '';
+  if (EDIT_METHODS.has(method) && !validEditToken(req.get('x-edit-token'))) {
+    return res.json({ error: 'Edit password required', code: 'EDIT_LOCKED' });
+  }
   try {
     let result;
     switch(method) {
       case 'getCurrentUserEmail':     result = email; break;
-      case 'readSheet':               result = await readSheet(args[0]); break;
+      case 'readSites':               result = await readSites(args[0]); break;
       case 'getCombinedStatus':       result = await getCombinedStatus(args[0]); break;
       case 'getSiteUrlsForTab':       result = await getSiteUrlsForTab(args[0]); break;
       case 'updateCell':              result = await updateCell(args[0],args[1],args[2],args[3],email); break;

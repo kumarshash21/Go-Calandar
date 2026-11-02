@@ -131,7 +131,7 @@ function matchCRs(crs, sitesByTab, aliases) {
     out.tab = tab;
     const onTab = list => list.filter(m => m.tab === tab);
     if (tab && hit.matches.length) {
-      // Same customer, other product: show it on its own tab even if the sheet only has the site on the other one.
+      // Same customer, other product: show it on its own tab even if the calendar only has the site on the other one.
       const here = onTab(hit.matches);
       hit.matches = here.length ? here
         : uniq(hit.matches.map(m => ({ tab, site: m.site, fromSalesforce: true })));
