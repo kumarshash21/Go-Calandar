@@ -2833,7 +2833,7 @@ return (hit && hit.changeCategory) || '';
 }
 function catBadge(crn) {
 var c = crCategoryFor(crn);
-return c ? '<span style="'+catStyle(c)+';font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap">'+esc(c)+'</span>' : '<span style="font-size:10px;color:var(--muted)">—</span>';
+return '<span style="'+catStyle(c)+';font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap">'+esc(c || 'Not set')+'</span>';
 }
 function crLinkHtml(num, url) {
 var label = 'CRN#' + String(num || '').replace(/^0+/, '');
