@@ -3829,6 +3829,7 @@ typeActive[t] = (typeActive[t] || 0) + s.typeActive[t];
 });
 });
 document.getElementById('sumSites').textContent     = totals.sites;
+document.getElementById('sumTotal').textContent = ((totals.done || 0) - (totals.doneIssues || 0)) + totals.active + totals.cancelled + (totals.failed || 0);
 document.getElementById('sumDone').textContent      = (totals.done || 0) - (totals.doneIssues || 0);
 document.getElementById('sumDoneIssues').textContent = totals.doneIssues || 0;
 document.getElementById('sumActive').textContent    = totals.active;
@@ -5541,6 +5542,7 @@ body.innerHTML = h;
       
       <div class="sum-kpi-row">
         <div class="sum-kpi"><strong id="sumSites">—</strong><span>Sites</span></div>
+        <div class="sum-kpi kpi-active"><strong id="sumTotal">—</strong><span>Total Changes</span></div>
         <div class="sum-kpi kpi-done"><strong id="sumDone">—</strong><span>Deployed ✓</span></div>
         <div class="sum-kpi" style="border-left:3px solid #D97706"><strong id="sumDoneIssues" style="color:#B45309">—</strong><span style="color:#B45309;font-size:9px">Done w/Issues</span><div class="sum-pct" id="sumDoneIssuesPct"></div></div>
         <div class="sum-kpi kpi-active"><strong id="sumActive">—</strong><span>Upcoming</span><div class="sum-pct" id="sumActivePct"></div></div>
