@@ -53,7 +53,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .btn-thisweek{background:#EFF6FF;color:#1D4ED8;border-color:#93C5FD;font-weight:600}
 .tw-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9990;overflow-y:auto;padding:24px 16px}
 .tw-overlay.open{display:block}
-.tw-panel{background:var(--surface);border-radius:14px;max-width:820px;margin:0 auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.tw-panel{background:var(--surface);border-radius:14px;max-width:1100px;margin:0 auto;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .tw-head{background:#1D4ED8;color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
 .tw-head h2{font-size:15px;font-weight:700;margin:0}
 .tw-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px;opacity:.8}
@@ -64,9 +64,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .tw-kpi:last-child{border-right:none}
 .tw-kpi strong{display:block;font-size:24px;font-weight:800;color:var(--accent)}
 .tw-kpi span{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
-.tw-body{padding:16px 24px}
+.tw-body{padding:16px 24px;overflow-x:auto}
 .tw-type-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-.tw-table{width:100%;border-collapse:collapse;font-size:12px}
+.tw-table{width:100%;min-width:900px;border-collapse:collapse;font-size:12px}
 .tw-table th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)}
 .tw-table td{padding:9px 12px;border-bottom:.5px solid var(--border);vertical-align:top}
 .tw-table tr:last-child td{border-bottom:none}
@@ -130,6 +130,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .summary-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px;opacity:.8}
 .summary-close:hover{opacity:1;background:rgba(255,255,255,.15)}
 .summary-body{padding:20px 24px}
+.sum-pct{font-size:10px;font-weight:600;color:var(--muted);margin-top:3px}
 .sum-tabs{display:flex;gap:6px;margin-bottom:18px;border-bottom:1.5px solid var(--border);padding-bottom:12px}
 .sum-tab{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
 .sum-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -647,8 +648,8 @@ text-align:center;padding:6px 0 4px;line-height:1;
       onkeydown="handleSearchKey(event)"/>
     <div id="searchSuggestions" style="display:none;position:absolute;top:calc(100% + 3px);left:0;min-width:240px;background:#fff;border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.10);z-index:999;max-height:220px;overflow-y:auto"></div>
   </div>
-  <span class="filter-label">Type</span>
-  <select id="typeFilter" onchange="syncLegendToFilter();applyFilters()">
+  <span class="filter-label" style="display:none">Type</span>
+  <select id="typeFilter" style="display:none" onchange="syncLegendToFilter();applyFilters()">
     <option value="">All types</option>
     <option value="gm">GreyMatter Upgrade / Hotfix</option>
     <option value="firmware">Firmware Update</option>
@@ -659,8 +660,8 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <option value="golive">New Go-Live</option>
   </select>
 
-  <span class="filter-label">Change Category</span>
-  <select id="categoryFilter" onchange="applyFilters()">
+  <span class="filter-label" style="display:none">Change Category</span>
+  <select id="categoryFilter" style="display:none" onchange="applyFilters()">
     <option value="">All categories</option>
     <option value="Emergency">Emergency</option>
     <option value="Normal">Normal</option>
@@ -686,8 +687,6 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <div class="leg" data-type="firmware" onclick="toggleLegendFilter('firmware')"><div class="leg-sq" style="background:var(--firmware-bg)"></div>Firmware Update</div>
     <div class="leg" data-type="infra"    onclick="toggleLegendFilter('infra')"><div class="leg-sq" style="background:var(--infra-bg)"></div>Infra Update</div>
     <div class="leg" data-type="sol"    onclick="toggleLegendFilter('sol')"><div class="leg-sq" style="background:var(--sol-bg)"></div>Tool / Config</div>
-    <div class="leg" data-type="cert"   onclick="toggleLegendFilter('cert')"><div class="leg-sq" style="background:var(--cert-bg)"></div>Cert</div>
-    <div class="leg" data-type="os"     onclick="toggleLegendFilter('os')"><div class="leg-sq" style="background:var(--os-bg)"></div>OS Patch</div>
     <div class="leg" data-type="golive" onclick="toggleLegendFilter('golive')"><div class="leg-sq" style="background:var(--golive-bg);border:1px solid #86EFAC"></div>Go-Live</div>
   </div>
   <button id="addSiteBtn" onclick="openNewSiteIfAllowed()" title="Add a new site to the calendar" style="margin-left:auto;padding:5px 12px;font-size:11px;font-weight:600;font-family:var(--sans);background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">＋ New Site</button>
@@ -2347,6 +2346,10 @@ document.querySelectorAll('.leg').forEach(function(el) {
 el.classList.toggle('active', el.getAttribute('data-type') === val);
 });
 }
+var HIDDEN_SITES = ['cloudcentric', 'greyorange', 'samsatl'];
+function isHiddenSite(name) {
+return HIDDEN_SITES.indexOf(String(name).toLowerCase().replace(/[^a-z0-9]/g, '')) !== -1;
+}
 function applyFilters() {
 _updateStaleBadge();
 var q     = (document.getElementById('searchInput').value || '').toLowerCase();
@@ -2355,7 +2358,7 @@ var month = (document.getElementById('monthFilter').value || '');
 state.activeCategory = (document.getElementById('categoryFilter').value || '');
 var data  = state.currentTab === 'rtp' ? state.rtpRows : state.rmsRows;
 if (!data) return;
-var filtered = withSfRows(data, state.currentTab);
+var filtered = withSfRows(data, state.currentTab).filter(function(r) { return !isHiddenSite(r.site); });
 var currentWeekNum = parseInt(CURRENT_WEEK.split(' ')[1]) || 13;
 var totalChanges = 0;
 if (q) {
@@ -3594,8 +3597,6 @@ gm:       { label:'GreyMatter', bg:'#D4E6F9', color:'#0C2F60' },
 firmware: { label:'Firmware',   bg:'#FDDFA0', color:'#5A3A00' },
 infra:    { label:'Infra',      bg:'#DDD9CF', color:'#3A3831' },
 sol:      { label:'Solution',   bg:'#F4C8D8', color:'#5E1535' },
-cert:     { label:'Cert',       bg:'#F7C5C5', color:'#5E1515' },
-os:       { label:'OS Patch',   bg:'#E2D9F3', color:'#3A1F6E' },
 golive:   { label:'Go-Live',    bg:'#DCFCE7', color:'#14532D' },
 };
 function openSummary() {
@@ -3800,6 +3801,7 @@ body.innerHTML = h;
 
 function renderSummary() {
 var data = _sumData.filter(function(s) {
+if (isHiddenSite(s.site)) return false;
 if (_sumTab === 'rtp') return s.tab === 'rtp';
 if (_sumTab === 'rms') return s.tab === 'rms';
 return true;
@@ -3827,13 +3829,15 @@ typeActive[t] = (typeActive[t] || 0) + s.typeActive[t];
 });
 });
 document.getElementById('sumSites').textContent     = totals.sites;
-document.getElementById('sumTotal').textContent     = totals.total;
 document.getElementById('sumDone').textContent      = (totals.done || 0) - (totals.doneIssues || 0);
 document.getElementById('sumDoneIssues').textContent = totals.doneIssues || 0;
 document.getElementById('sumActive').textContent    = totals.active;
-document.getElementById('sumDelayed').textContent   = totals.delayed;
 document.getElementById('sumCancelled').textContent = totals.cancelled;
 document.getElementById('sumFailed').textContent    = totals.failed || 0;
+var _base = (totals.done || 0) - (totals.doneIssues || 0);
+[['sumDoneIssues', totals.doneIssues || 0],['sumActive', totals.active],['sumCancelled', totals.cancelled],['sumFailed', totals.failed || 0]].forEach(function(p){
+  document.getElementById(p[0] + 'Pct').textContent = _base ? (Math.round(p[1] / _base * 1000) / 10) + '% of deployed' : '—';
+});
 var tc = document.getElementById('sumTypeCards');
 tc.innerHTML = Object.keys(TYPE_META).map(function(type) {
 var count = typeTotals[type] || 0;
@@ -5408,12 +5412,6 @@ body.innerHTML = h;
     <div class="tw-body">
       <div class="tw-type-row" id="twTypeRow"></div>
       <table class="tw-table">
-        <thead><tr>
-          <th style="width:180px">Site</th>
-          <th style="width:80px">Product</th>
-          <th style="width:44px">Count</th>
-          <th>Changes</th>
-        </tr></thead>
         <tbody id="twBody"></tbody>
       </table>
     </div>
@@ -5543,13 +5541,11 @@ body.innerHTML = h;
       
       <div class="sum-kpi-row">
         <div class="sum-kpi"><strong id="sumSites">—</strong><span>Sites</span></div>
-        <div class="sum-kpi kpi-active"><strong id="sumTotal">—</strong><span>Total Changes</span></div>
         <div class="sum-kpi kpi-done"><strong id="sumDone">—</strong><span>Deployed ✓</span></div>
-        <div class="sum-kpi" style="border-left:3px solid #D97706"><strong id="sumDoneIssues" style="color:#B45309">—</strong><span style="color:#B45309;font-size:9px">Done w/Issues</span></div>
-        <div class="sum-kpi kpi-active"><strong id="sumActive">—</strong><span>Upcoming</span></div>
-        <div class="sum-kpi kpi-delayed" onclick="openChronicPanel()" style="cursor:pointer;border:1.5px solid transparent;border-radius:10px;transition:border-color .15s" title="Click to see recurring delays" onmouseover="this.style.borderColor='#D97706'" onmouseout="this.style.borderColor='transparent'"><strong id="sumDelayed">—</strong><span>Delayed →</span><div style="font-size:9px;color:#D97706;margin-top:2px;font-weight:600">Click to analyse ›</div></div>
-        <div class="sum-kpi kpi-cancelled"><strong id="sumCancelled">—</strong><span>Cancelled</span></div>
-        <div class="sum-kpi" style="border-left:3px solid #DC2626"><strong id="sumFailed" style="color:#DC2626">—</strong><span style="color:#DC2626">Failed ✗</span></div>
+        <div class="sum-kpi" style="border-left:3px solid #D97706"><strong id="sumDoneIssues" style="color:#B45309">—</strong><span style="color:#B45309;font-size:9px">Done w/Issues</span><div class="sum-pct" id="sumDoneIssuesPct"></div></div>
+        <div class="sum-kpi kpi-active"><strong id="sumActive">—</strong><span>Upcoming</span><div class="sum-pct" id="sumActivePct"></div></div>
+        <div class="sum-kpi kpi-cancelled"><strong id="sumCancelled">—</strong><span>Cancelled</span><div class="sum-pct" id="sumCancelledPct"></div></div>
+        <div class="sum-kpi" style="border-left:3px solid #DC2626"><strong id="sumFailed" style="color:#DC2626">—</strong><span style="color:#DC2626">Failed ✗</span><div class="sum-pct" id="sumFailedPct"></div></div>
       </div>
       
       <div class="sum-section-title">Changes by Type</div>
