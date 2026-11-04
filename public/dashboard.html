@@ -4496,10 +4496,33 @@ document.getElementById('weeklyBody').innerHTML = '<div class="wkr-empty">Select
 document.getElementById('weeklyOverlay').classList.add('open');
 }
 function downloadWeeklyExcel() {
-var txt = window._wkrReportText; if (!txt) return;
-var lines = txt.split('\n'); var csv = '';
-lines.forEach(function(l) { csv += '"'+l.replace(/"/g,'""')+'"\n'; });
-_downloadFile('weekly_report.csv', csv, 'text/csv');
+var body = document.getElementById('weeklyBody');
+if (!body) return;
+var q = function(v) { return '"' + String(v).replace(/\s+/g, ' ').trim().replace(/"/g, '""') + '"'; };
+var rows = [];
+var sel = document.getElementById('wkrWeekSelect');
+rows.push([q('GO Events Calendar - Weekly Report'), q(sel ? sel.value : '')].join(','));
+Array.prototype.forEach.call(body.querySelectorAll('.wkr-section-title, table'), function(el) {
+  if (el.tagName === 'TABLE') {
+    Array.prototype.forEach.call(el.querySelectorAll('tr'), function(tr) {
+      var cells = Array.prototype.map.call(tr.children, function(c) { return q(c.textContent); });
+      if (cells.length) rows.push(cells.join(','));
+    });
+  } else {
+    rows.push('');
+    rows.push(q(el.textContent));
+  }
+});
+if (rows.length <= 1 && window._wkrReportText) {
+  window._wkrReportText.split('\n').forEach(function(l) { rows.push(q(l)); });
+}
+var blob = new Blob(['\uFEFF' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+var a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = 'weekly_report' + (sel && sel.value ? '_' + sel.value.replace(/ /g, '_') : '') + '.csv';
+a.style.display = 'none';
+document.body.appendChild(a); a.click(); document.body.removeChild(a);
+setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
 }
 function downloadWeeklyPdf() {
 var body = document.getElementById('weeklyBody');
@@ -4526,6 +4549,8 @@ function closeWeeklyReport() {
 document.getElementById('weeklyOverlay').classList.remove('open');
 }
 function generateWeeklyReport() {
+if (!state.crLoaded && !generateWeeklyReport._crTried) { generateWeeklyReport._crTried = true; ensureCRsLoaded(function() { generateWeeklyReport(); }); return; }
+generateWeeklyReport._crTried = false;
 var wkLabel = document.getElementById('wkrWeekSelect').value;
 var tabSel = document.getElementById('wkrTabSelect').value;
 if (!wkLabel) { alert('Please select a week.'); return; }
@@ -4567,6 +4592,35 @@ entries.push({ site: r.site, tab: src.tab, pl: r.pl || src.tab.toUpperCase(),
  newWeek: ps.newWeek || '' });
 });
 }); // end wkRange
+});
+});
+// Salesforce CRs not already cited in a calendar cell (same rule as the summary), dated inside the selected weeks.
+(state.crDeployments || []).forEach(function(cr) {
+if (!cr.start || !cr.matches || !cr.matches.length) return;
+var wkOfCr = dateToWeek(crLocalDate(cr.start));
+if (!wkOfCr || wkRange.indexOf(wkOfCr) === -1) return;
+var n = String(cr.crNumber || '').replace(/^0+/, '');
+if (n) {
+var re = new RegExp('CRN\\s*#?\\s*0*' + n + '(?!\\d)', 'i');
+var cited = sources.some(function(src) { return src.rows.some(function(r) { return Object.keys(r.cells).some(function(wk) { return re.test(r.cells[wk] || ''); }); }); });
+if (cited) return;
+}
+var type = CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] || 'sol';
+var st = CR_STATUS_TO_CHIP[cr.status] || 'active';
+if (st === 'done-issues') st = 'done';
+var seen = {};
+cr.matches.forEach(function(m) {
+if (tabSel && tabSel !== 'all' && m.tab !== tabSel) return;
+if (isHiddenSite(m.site)) return;
+var k = m.tab + '||' + String(m.site).toLowerCase().trim();
+if (seen[k]) return; seen[k] = true;
+stats.total++;
+stats[st] = (stats[st] || 0) + 1;
+if (!typeCounts[type]) typeCounts[type] = { total:0, done:0, active:0, delayed:0, cancelled:0, failed:0 };
+typeCounts[type].total++;
+typeCounts[type][st] = (typeCounts[type][st] || 0) + 1;
+entries.push({ site: m.site, tab: m.tab, pl: m.tab.toUpperCase(), ver: '', type: type,
+ text: String(cr.activity || cr.subject || '').trim() || ('CR ' + (cr.crNumber || '')), status: st, newWeek: '' });
 });
 });
 var statusOrder = { done:0, active:1, delayed:2, cancelled:3 };
