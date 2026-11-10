@@ -482,13 +482,13 @@ async function loadCRRaw(force) {
                 ORDER BY StartDateTime DESC`;
   const records = await sfQuery(soql);
   // Change Type (GreyMatter Upgrade, Firmware Update, ...) lives on the Case, not the Event.
-  const changeType = {}, product = {}, category = {};
+  const changeType = {}, product = {}, category = {}, caseOwner = {}, caseStatus = {}, crfLink = {};
   const nums = [...new Set(records.map(r => r.Case_Number__c).filter(Boolean))];
   for (let i = 0; i < nums.length; i += 150) {
     const list = nums.slice(i, i + 150).map(n => `'${String(n).replace(/[^0-9A-Za-z]/g, '')}'`).join(',');
     try {
-      const cases = await sfQuery(`SELECT CaseNumber, Change_Type__c, Product_Type__c, Change_Category__c FROM Case WHERE CaseNumber IN (${list})`);
-      cases.forEach(c => { changeType[c.CaseNumber] = c.Change_Type__c || ''; product[c.CaseNumber] = c.Product_Type__c || ''; category[c.CaseNumber] = c.Change_Category__c || ''; });
+      const cases = await sfQuery(`SELECT CaseNumber, CRF_Link__c, Owner.Name, Status, Change_Type__c, Product_Type__c, Change_Category__c FROM Case WHERE CaseNumber IN (${list})`);
+      cases.forEach(c => { changeType[c.CaseNumber] = c.Change_Type__c || ''; product[c.CaseNumber] = c.Product_Type__c || ''; category[c.CaseNumber] = c.Change_Category__c || ''; caseOwner[c.CaseNumber] = (c.Owner && c.Owner.Name) || ''; caseStatus[c.CaseNumber] = c.Status || ''; crfLink[c.CaseNumber] = c.CRF_Link__c || ''; });
     } catch (e) { console.warn('[CR] change type lookup failed:', e.message); break; }
   }
   const rows = records.map(r => ({
@@ -500,6 +500,9 @@ async function loadCRRaw(force) {
     changeType: changeType[r.Case_Number__c] || '',
     product: product[r.Case_Number__c] || '',
     changeCategory: category[r.Case_Number__c] || '',
+    caseOwner: caseOwner[r.Case_Number__c] || '',
+    caseStatus: caseStatus[r.Case_Number__c] || '',
+    crfLink: crfLink[r.Case_Number__c] || '',
     start: r.StartDateTime ? new Date(r.StartDateTime).toISOString() : null,
     end:   r.EndDateTime   ? new Date(r.EndDateTime).toISOString()   : null,
     status: r.Closer_code_status__c || 'Scheduled',
@@ -507,7 +510,7 @@ async function loadCRRaw(force) {
   // Cases with no Event on the calendar: Planned Start / Actual End on the Case are the only dates; blank when empty.
   const seen = new Set(rows.map(r => r.crNumber));
   try {
-    const orphans = await sfQuery(`SELECT Id, CaseNumber, Subject, Account.Name, Planned_Start__c, Actual_End_Time__c, Change_Type__c, Product_Type__c, Change_Category__c, Closure_Code__c, Status
+    const orphans = await sfQuery(`SELECT Id, CaseNumber, Subject, Account.Name, Planned_Start__c, Actual_End_Time__c, Change_Type__c, Product_Type__c, Change_Category__c, Closure_Code__c, Status, Owner.Name, CRF_Link__c
                                    FROM Case WHERE Planned_Start__c >= ${CR_FROM} ORDER BY Planned_Start__c DESC`);
     orphans.filter(c => !seen.has(c.CaseNumber)).forEach(c => rows.push({
       id: c.Id,
@@ -518,6 +521,9 @@ async function loadCRRaw(force) {
       changeType: c.Change_Type__c || '',
       product: c.Product_Type__c || '',
       changeCategory: c.Change_Category__c || '',
+      caseOwner: (c.Owner && c.Owner.Name) || '',
+      caseStatus: c.Status || '',
+      crfLink: c.CRF_Link__c || '',
       start: c.Planned_Start__c ? new Date(c.Planned_Start__c).toISOString() : null,
       end:   c.Actual_End_Time__c ? new Date(c.Actual_End_Time__c).toISOString() : null,
       status: c.Closure_Code__c || (legacyClosed(c) ? 'Successful' : 'Scheduled'),
@@ -525,7 +531,7 @@ async function loadCRRaw(force) {
   } catch (e) { console.warn('[CR] case-only lookup failed:', e.message); }
   // Open Change Request cases with no Planned Start yet (Deployment Dates blank) are shown in the current week.
   try {
-    const undated = await sfQuery(`SELECT Id, CaseNumber, Subject, Account.Name, Change_Type__c, Product_Type__c, Change_Category__c, Closure_Code__c, Status
+    const undated = await sfQuery(`SELECT Id, CaseNumber, Subject, Account.Name, Change_Type__c, Product_Type__c, Change_Category__c, Closure_Code__c, Status, Owner.Name, CRF_Link__c
                                    FROM Case WHERE RecordType.Name = 'Change Request' AND Planned_Start__c = null
                                    AND IsClosed = false AND CreatedDate >= ${CR_FROM} ORDER BY CreatedDate DESC`);
     const have = new Set(rows.map(r => r.crNumber));
@@ -539,7 +545,11 @@ async function loadCRRaw(force) {
       changeType: c.Change_Type__c || '',
       product: c.Product_Type__c || '',
       changeCategory: c.Change_Category__c || '',
+      caseOwner: (c.Owner && c.Owner.Name) || '',
+      caseStatus: c.Status || '',
+      crfLink: c.CRF_Link__c || '',
       start: now,
+      noDate: true,
       end: null,
       status: c.Closure_Code__c || 'Scheduled',
     }));

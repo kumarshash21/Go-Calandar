@@ -85,7 +85,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .weekly-controls label{font-size:12px;font-weight:600;color:var(--muted)}
 .weekly-controls select{font-family:var(--sans);font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg);color:var(--text);outline:none}
 .weekly-body{padding:20px 24px}
-.wkr-kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:20px}
+.wkr-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px}
 .wkr-kpi{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
 .wkr-kpi strong{display:block;font-size:24px;font-weight:800;line-height:1.1}
 .wkr-kpi span{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
@@ -144,7 +144,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .sum-kpi.kpi-delayed strong{color:#D97706}
 .sum-kpi.kpi-cancelled strong{color:#DC2626}
 .sum-kpi.kpi-warroom strong{color:#7C3AED}
-.sum-types{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px}
+.sum-types{display:flex;gap:8px;margin-bottom:20px}
+.sum-types .sum-type-card{flex:1 1 0;min-width:0}
 .sum-type-card{border-radius:8px;padding:10px 8px;text-align:center;border:1px solid transparent}
 .sum-type-card strong{display:block;font-size:20px;font-weight:800}
 .sum-type-card span{font-size:10px;font-weight:600;text-transform:uppercase}
@@ -309,6 +310,13 @@ tr.war-room .ver-input{background:#FEF3C7 !important}
 .wr-badge{display:inline-flex;align-items:center;gap:3px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;vertical-align:middle;letter-spacing:.3px}
 .wr-chip{display:inline-flex;align-items:center;gap:2px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:3px;font-size:9px;font-weight:700;padding:2px 5px;font-family:var(--mono);white-space:nowrap}
 .overlay.cr-view .modal-body input,.overlay.cr-view .modal-body select,.overlay.cr-view .modal-body textarea,.overlay.cr-view .entry-list button,.overlay.cr-view .entry-add-row,.overlay.cr-view .status-btn{pointer-events:none}
+.overlay.cr-view #fNotesRow{display:none !important}
+.overlay.cr-view #fCrfRow{display:block !important}
+.overlay.cr-view #fType,.overlay.cr-view #fEntryList{display:none !important}
+.overlay.cr-view #fCrSubject{display:block !important}
+.overlay.cr-view #fCrTypeView{display:block !important}
+.overlay.cr-view #fDate,.overlay.cr-view #fDateTools,.overlay.cr-view #fPinLabel{display:none !important}
+.overlay.cr-view #fCrDateView{display:block !important}
 .overlay.cr-view #statusBtnRow,.overlay.cr-view .entry-add-row,.overlay.cr-view #fExactDate,.overlay.cr-view .modal-acts .btn:not(.cr-keep){display:none !important}
 .cr-link{color:var(--accent);text-decoration:underline}
 .chip.sf-cr{cursor:default;box-shadow:inset 3px 0 0 #2563EB}
@@ -454,7 +462,7 @@ th.wk-cur,.wk-hdr.wk-cur{background:#EAF3F0 !important;color:#0A6040 !important;
 .chip.golive::before{content:"🚀 ";font-size:9px}
 td.empty-cell{cursor:pointer}
 td.empty-cell:hover::after{content:"+";display:flex;align-items:center;justify-content:center;height:100%;font-size:16px;color:var(--border2)}
-.overlay{display:none;position:fixed;inset:0;background:rgba(10,10,10,.45);z-index:200;align-items:center;justify-content:center}
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,10,10,.45);z-index:10000;align-items:center;justify-content:center}
 .overlay.open{display:flex}
 .modal{background:var(--surface);border-radius:14px;border:1px solid var(--border2);width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.18);animation:slideUp .18s ease}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -634,7 +642,6 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <button class="ab-btn" onclick="openSummary()">📊 Summary</button>
     <div class="ab-sep"></div>
     <button class="ab-btn" onclick="openCRDeployment()">🚀 CR Deployment</button>
-    <button class="ab-btn" onclick="openAnalytics()">👥 Adoption</button>
     <button class="ab-btn" onclick="openWeeklyReport()">📅 Weekly Report</button>
   </div>
 </div>
@@ -719,9 +726,10 @@ text-align:center;padding:6px 0 4px;line-height:1;
         <div class="form-row" id="fWeekRow">
           <label>Date <span style="font-weight:400;opacity:.7">(auto-maps to week)</span></label>
           <input type="date" id="fDate" onchange="onDateChange(this.value)" style="width:100%"/>
-          <div style="font-size:10px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div id="fCrDateView" style="display:none;font-size:13px;color:var(--text);line-height:1.7"></div>
+          <div id="fDateTools" style="font-size:10px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span>Week: <strong id="fWeekDisplay">—</strong></span>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:auto;font-size:11px;color:var(--accent)">
+            <label id="fPinLabel" style="display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:auto;font-size:11px;color:var(--accent)">
               <input type="checkbox" id="fExactDate" onchange="toggleExactDate(this.checked)" style="accent-color:var(--accent)"/>
               Pin exact date on chip
             </label>
@@ -747,7 +755,8 @@ text-align:center;padding:6px 0 4px;line-height:1;
         <div id="fCatVal" style="font-size:13px;font-weight:600"></div>
       </div>
       <div class="form-row" id="fTypeRow">
-        <label>Update Type</label>
+        <label id="fTypeLabel">Update Type</label>
+        <div id="fCrTypeView" style="display:none;font-size:13px;font-weight:600"></div>
         <select id="fType" onchange="updateNewVerBadge()">
           <option value="gm">GreyMatter Upgrade / Hotfix</option>
           <option value="firmware">Firmware Update</option>
@@ -761,6 +770,7 @@ text-align:center;padding:6px 0 4px;line-height:1;
       <div class="form-row">
         <label id="fDetailLabel">Update Details <span id="fEntryCount" style="font-weight:400;opacity:.6"></span></label>
         
+        <div id="fCrSubject" style="display:none;font-size:13px;font-weight:600;line-height:1.5;white-space:normal;word-break:break-word;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:8px 10px"></div>
         <div class="entry-list" id="fEntryList"></div>
         
         <div class="entry-add-row">
@@ -774,6 +784,7 @@ text-align:center;padding:6px 0 4px;line-height:1;
         <label>Salesforce CR</label>
         <div id="fCrLink" style="font-size:13px;font-weight:600"></div>
       </div>
+      <div class="form-row" id="fCrfRow" style="display:none"><label>CRF Link</label><div id="fCrfVal" style="font-size:13px;font-weight:600;word-break:break-all"></div></div>
       <div class="form-row" id="fNotesRow">
         <label>Notes (optional)</label>
         <input id="fNotes" placeholder="Any context or dependencies…"/>
@@ -1178,7 +1189,7 @@ var CR_STATUS_TO_CHIP = { 'Successful':'done', 'Successful with Issues':'done-is
 // Salesforce CR -> same entry encoding the calendar cells use, so it renders as a normal chip.
 function crToEntry(cr) {
 var text = String(cr.activity || cr.subject || '').trim() || ('CR ' + (cr.crNumber || ''));
-var enc = encodeStatus(CR_STATUS_TO_CHIP[cr.status] || 'active', text, '', 'CRN#' + String(cr.crNumber || '').replace(/^0+/, '') + ' (Salesforce)', CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] || null, crLocalDate(cr.start));
+var enc = encodeStatus(CR_STATUS_TO_CHIP[cr.status] || 'active', text, '', 'CRN#' + String(cr.crNumber || '').replace(/^0+/, '') + ' (Salesforce)', CR_CHANGE_TYPE_TO_CHIP[String(cr.changeType || '').toLowerCase()] || null, cr.noDate ? null : crLocalDate(cr.start));
 return enc;
 }
 function _crChipHtml(matches, dimmed) {
@@ -2871,6 +2882,15 @@ document.getElementById('overlay').classList.add('cr-view');
 document.getElementById('modalTitle').textContent = 'Salesforce CR';
 var fmt = function(iso) { return iso ? new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'; };
 document.getElementById('modalSub').textContent = site + ' — ' + wk;
+document.getElementById('fTypeLabel').textContent = 'Change Type';
+document.getElementById('fCrTypeView').textContent = cr.changeType || '—';
+document.getElementById('fCrfVal').innerHTML = /^https?:\/\//i.test(cr.crfLink || '') ? '<a class="cr-link" href="' + esc(cr.crfLink) + '" target="_blank" rel="noopener">Open CRF ↗</a>' : '—';
+document.getElementById('fDetailLabel').innerHTML = 'Case Subject';
+document.getElementById('fCrSubject').textContent = cr.subject || parsed.text || '—';
+var _dl = document.querySelector('#fWeekRow > label'); if (_dl) _dl.textContent = 'Date Time & Week';
+document.getElementById('fCrDateView').innerHTML = cr.noDate
+? '<div>Date Time: <strong>—</strong></div><div>Week Number: <strong>' + esc(wk) + '</strong></div><div>Case Owner: <strong>' + esc(cr.caseOwner || '—') + '</strong></div>'
+: '<div>Date Time: <strong>' + fmt(cr.start) + (cr.end ? ' → ' + fmt(cr.end) : '') + '</strong></div><div>Week Number: <strong>' + esc(wk) + '</strong></div><div>Case Owner: <strong>' + esc(cr.caseOwner || '—') + '</strong></div>';
 document.getElementById('fNotes').value = [cr.status || 'Scheduled', fmt(cr.start) + ' → ' + fmt(cr.end), cr.changeType || ''].filter(Boolean).join('  ·  ');
 _modalEntries = [cr.subject || parsed.text];
 renderEntryList();
@@ -2985,7 +3005,7 @@ alert('Failed to save: ' + err.message);
 .updateVersion(state.currentTab, site, newVer, state.userEmail);
 }
 function closeModal() {
-document.getElementById('overlay').classList.remove('open', 'cr-view');
+document.getElementById('overlay').classList.remove('open', 'cr-view'); document.getElementById('fDetailLabel').innerHTML = 'Update Details <span id="fEntryCount" style="font-weight:400;opacity:.6"></span>'; var _tl = document.getElementById('fTypeLabel'); if (_tl) _tl.textContent = 'Update Type'; var _dl2 = document.querySelector('#fWeekRow > label'); if (_dl2) _dl2.innerHTML = 'Date <span style="font-weight:400;opacity:.7">(auto-maps to week)</span>';
 var box = document.getElementById('siteSuggestions');
 if (box) box.style.display = 'none';
 }
@@ -3873,7 +3893,8 @@ var tbody = document.getElementById('sumTableBody');
 tbody.innerHTML = data.map(function(s) {
 var pct = Math.round((s.total / maxTotal) * 100);
 var doneColor = s.done > 0 ? '#059669' : 'var(--muted)';
-var delayColor = s.delayed > 0 ? '#D97706' : 'var(--muted)';
+var issueColor = s.doneIssues > 0 ? '#D97706' : 'var(--muted)';
+var issuePct = s.done > 0 ? Math.round(((s.doneIssues || 0) / s.done) * 100) : 0;
 var plLabel  = s.pl || s.tab.toUpperCase();
 var tabBadge = '<span style="font-size:9px;background:var(--surface2);color:var(--muted);padding:1px 5px;border-radius:4px;margin-left:4px">' + esc(plLabel) + '</span>';
 return '<tr>' +
@@ -3889,17 +3910,11 @@ return '<tr>' +
 '</td>' +
 '<td style="color:' + doneColor + ';font-weight:600">' + (s.done || 0) + '</td>' +
 '<td style="color:var(--accent);font-weight:600">' + (s.active || 0) + '</td>' +
-'<td style="color:' + delayColor + ';font-weight:600">' + (s.delayed || 0) + '</td>' +
+'<td style="color:' + issueColor + ';font-weight:600">' + (s.doneIssues || 0) + ' <span style="font-size:11px;font-weight:500;color:var(--muted)">(' + issuePct + '%)</span></td>' +
 '<td style="color:' + (s.cancelled > 0 ? '#DC2626' : 'var(--muted)') + ';font-weight:600">' + (s.cancelled || 0) + '</td>' +
 '<td style="'+(s.failed>0?'color:#DC2626;font-weight:700':'color:var(--muted)')+'">'+(s.failed||0)+'</td>' +
-'<td>' +
-'<div style="display:flex;align-items:center;gap:6px">' +
-'<div class="sum-bar" style="width:60px"><div class="sum-bar-fill" style="width:' + s.delayRate + '%;background:#D97706"></div></div>' +
-'<span style="font-size:11px;color:' + (s.delayRate > 30 ? '#D97706' : 'var(--muted)') + '">' + s.delayRate + '%</span>' +
-'</div>' +
-'</td>' +
 '</tr>';
-}).join('') || '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">No data loaded — go back to the calendar and wait for data to load first</td></tr>';
+}).join('') || '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">No data loaded — go back to the calendar and wait for data to load first</td></tr>';
 }
 function sumSort(col) {
 if (_sumSortCol === col) {
@@ -4326,6 +4341,17 @@ function sfRowsForTab(tab) {
   });
   return Object.keys(bySite).map(function(k){ return bySite[k]; });
 }
+function _crFromNote(note) {
+var m = String(note||'').match(/CRN#?\s*0*(\d+)/i); if (!m) return null;
+return (state.crDeployments||[]).filter(function(cr){ return String(cr.crNumber||'').replace(/^0+/,'') === m[1]; })[0] || null;
+}
+function _crOwnerFor(note) { var c = _crFromNote(note); return c ? (c.caseOwner||'') : ''; }
+function _crStatusFor(note) { var c = _crFromNote(note); return c ? (c.caseStatus||'') : ''; }
+function openTwEntry(crn) {
+var n = String(crn||'').replace(/\D/g,'').replace(/^0+/,'');
+var cr = (state.crDeployments||[]).filter(function(c){ return String(c.crNumber||'').replace(/^0+/,'') === n; })[0];
+if (cr) openCRView(cr);
+}
 function openThisWeek(wkLabel) {
 document.getElementById('twOverlay').classList.add('open');
 var wk = wkLabel || CURRENT_WEEK;
@@ -4367,7 +4393,7 @@ entries.forEach(function(entry) {
  if (ps.status === 'done') totalDone++; else if (ps.status === 'done-issues') { totalDone++; totalDoneIssues++; } else if (ps.status === 'failed') { totalFailed++; } else totalActive++;
  var _smKey = src.tab + ':' + r.site;
  if (!siteMap[_smKey]) siteMap[_smKey] = { site: r.site, pl: r.pl || '', cspoc: r.cspoc || '', tab: src.tab, entries: [] };
- siteMap[_smKey].entries.push({ text: ps.text, type: type, status: ps.status, note: ps.note || '', date: ps.date || '', tab: src.tab });
+ siteMap[_smKey].entries.push({ text: ps.text, type: type, status: ps.status, note: ps.note || '', date: ps.date || '', tab: src.tab, owner: _crOwnerFor(ps.note), caseStatus: _crStatusFor(ps.note) });
 });
 });
 });
@@ -4410,7 +4436,7 @@ if (!note) return '';
 var m = note.match(/CRN[:\s#-]*([A-Za-z0-9-]+)/i); if (m) return m[1];
 m = note.match(/([A-Z]{2,}-\d{3,}|CR\d{4,}|INC\d{4,})/i); return m ? m[1] : '';
 }
-var activeRows = [], doneRows = [], failedRows = [];
+var activeRows = [], pendingRows = [], doneRows = [], failedRows = [];
 sites.forEach(function(s) {
 var tabLabel = s.tab ? s.tab.toUpperCase() : '';
  var plBadge = tabLabel ? '<span style="font-size:9px;background:var(--surface2);color:var(--muted);padding:1px 5px;border-radius:3px;margin-left:4px">'+esc(tabLabel)+'</span>' : '';
@@ -4424,46 +4450,50 @@ if (e.status==='failed') {
  var ftypeName=(TYPE_NAMES[e.type]||e.type||'').toUpperCase()||'—';
  var ftypeStyle=TYPE_COLORS[e.type]||'background:#E5E7EB;color:#374151';
  var ftypeBadge='<span style="'+ftypeStyle+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap">'+esc(ftypeName)+'</span>';
- var fdateFmt=e.date?new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'—';
- failedRows.push('<tr style="background:#FFF8F8"><td style="font-weight:600;color:#991B1B">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+fchip+'</td><td>'+ftypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+fdateFmt+'</td><td>'+fcrnBadge+'</td><td>'+catBadge(fcrn)+'</td></tr>');
+ var fdateFmt=e.date?new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'';
+ failedRows.push('<tr class="tw-click" onclick="openTwEntry(\''+esc(fcrn)+'\')" style="background:#FFF8F8;cursor:pointer"><td style="font-weight:600;color:#991B1B">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(e.owner||'—')+'</td><td>'+fchip+'</td><td>'+ftypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+fdateFmt+'</td><td>'+fcrnBadge+'</td><td style="font-size:11px">'+esc(e.caseStatus||'—')+'</td></tr>');
 } else if (e.status==='done') {
  var dcrn=extractCRN(e.note);
  var dcrnBadge=dcrn?'<span style="font-size:10px;font-weight:600;color:#059669;background:#D1FAE5;padding:2px 8px;border-radius:4px" title="'+esc(e.note)+'">'+esc(dcrn)+'</span>':'<span style="font-size:10px;color:var(--muted)">—</span>';
  var dtypeName = (TYPE_NAMES[e.type] || e.type || '').toUpperCase() || '—';
  var dtypeStyle = TYPE_COLORS[e.type] || 'background:#E5E7EB;color:#374151';
  var dtypeBadge = '<span style="'+dtypeStyle+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap">'+esc(dtypeName)+'</span>';
- var ddateFmt = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
- doneRows.push('<tr><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+chip+'</td><td>'+dtypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+ddateFmt+'</td><td>'+dcrnBadge+'</td><td>'+catBadge(dcrn)+'</td></tr>');
+ var ddateFmt = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '';
+ doneRows.push('<tr class="tw-click" onclick="openTwEntry(\''+esc(dcrn)+'\')" style="cursor:pointer"><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(e.owner||'—')+'</td><td>'+chip+'</td><td>'+dtypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+ddateFmt+'</td><td>'+dcrnBadge+'</td><td style="font-size:11px">'+esc(e.caseStatus||'—')+'</td></tr>');
 } else {
  var crn = extractCRN(e.note);
  var crnBadge = crn ? '<span style="font-size:10px;font-weight:600;color:#1D4ED8;background:#EFF6FF;padding:2px 8px;border-radius:4px" title="'+esc(e.note)+'">'+esc(crn)+'</span>' : '<span style="font-size:10px;color:var(--muted)">—</span>';
  var atypeName = (TYPE_NAMES[e.type] || e.type || '').toUpperCase() || '—';
  var atypeStyle = TYPE_COLORS[e.type] || 'background:#E5E7EB;color:#374151';
  var atypeBadge = '<span style="'+atypeStyle+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap">'+esc(atypeName)+'</span>';
- var adateFmt = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
- activeRows.push('<tr><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(s.cspoc||'—')+'</td><td>'+chip+'</td><td>'+atypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+adateFmt+'</td><td>'+crnBadge+'</td><td>'+catBadge(crn)+'</td></tr>');
+ var adateFmt = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '';
+ (e.date ? activeRows : pendingRows).push('<tr class="tw-click" onclick="openTwEntry(\''+esc(crn)+'\')" style="cursor:pointer"><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(e.owner||'—')+'</td><td>'+chip+'</td><td>'+atypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+adateFmt+'</td><td>'+crnBadge+'</td><td style="font-size:11px">'+esc(e.caseStatus||'—')+'</td></tr>');
 }
 });
 });
 var SH = '<tr style="background:var(--surface2)">';
 var TH = 'style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left"';
 var SEC = 'style="padding:8px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2)"';
-var h = '<tr><td colspan="7" '+SEC+' style="padding:8px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);color:var(--accent)">⏳ Active / Pending ('+activeRows.length+')</td></tr>';
-if (activeRows.length) {
-h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:175px">Site</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:75px">POC</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:95px">Change Type</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">Date</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">CRN / Ticket</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:90px">Change Category</th></tr>'+activeRows.join('');
-} else {
-h += '<tr><td colspan="7" style="padding:10px 12px;color:var(--muted);font-size:11px;font-style:italic">No pending changes.</td></tr>';
+var _SECST = 'padding:8px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);color:';
+var _ROWHDR = SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:175px">Site</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">Case Owner</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:95px">Change Type</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">Date</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">CRN / Ticket</th><th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Case Status</th></tr>';
+var h = '';
+function _twSection(title, color, rows, emptyMsg) {
+ h += '<tr><td colspan="7" style="'+_SECST+color+'">'+title+' ('+rows.length+')</td></tr>';
+ if (rows.length) h += SH+_ROWHDR+rows.join('');
+ else h += '<tr><td colspan="7" style="padding:10px 12px;color:var(--muted);font-size:11px;font-style:italic">'+emptyMsg+'</td></tr>';
 }
+_twSection('📅 Scheduled', 'var(--accent)', activeRows, 'No scheduled changes.');
+_twSection('🕓 Pending Scheduling', '#B45309', pendingRows, 'Nothing pending scheduling.');
 // ── COMPLETED section (Done ✅ + Failed ✗ = all closed changes) ──
 var totalCompleted = doneRows.length + failedRows.length;
 h += '<tr><td colspan="7" style="padding:10px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:#F0FDF4;color:#065F46">✔ Completed ('+totalCompleted+') — Done: '+doneRows.length+' | Failed: '+failedRows.length+'</td></tr>';
 if (doneRows.length) {
  h += '<tr style="background:#F0FDF4"><td colspan="7" style="padding:4px 14px;font-size:9px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.4px">✅ Done — Deployed Successfully</td></tr>';
- h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">POC</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:90px">Change Category</th>'+SH+doneRows.join('');
+ h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">Case Owner</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Case Status</th>'+SH+doneRows.join('');
 }
 if (failedRows.length) {
  h += '<tr style="background:#FFF8F8"><td colspan="7" style="padding:4px 14px;font-size:9px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:.4px">✗ Failed — Deployed Unsuccessfully</td></tr>';
- h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:70px">POC</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:90px">Change Category</th>'+SH+failedRows.join('');
+ h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">Case Owner</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Case Status</th>'+SH+failedRows.join('');
 }
 if (!totalCompleted) {
  h += '<tr><td colspan="7" style="padding:10px 12px;color:var(--muted);font-size:11px;font-style:italic">Nothing completed yet this week.</td></tr>';
@@ -4650,38 +4680,34 @@ h += '<div class="wkr-kpi-row">' +
 '<div class="wkr-kpi"><strong>' + stats.total + '</strong><span>Planned</span></div>' +
 '<div class="wkr-kpi" style="border-color:#6EE7B7"><strong style="color:#065F46">' + stats.done + '</strong><span>Deployed ✅</span></div>' +
 '<div class="wkr-kpi" style="border-color:#93C5FD"><strong style="color:#1E40AF">' + (stats.active||0) + '</strong><span>Active ⏳</span></div>' +
-'<div class="wkr-kpi" style="border-color:#FCD34D"><strong style="color:#92400E">' + (stats.delayed||0) + '</strong><span>Delayed →</span></div>' +
 '<div class="wkr-kpi" style="border-color:#FCA5A5"><strong style="color:#991B1B">' + (stats.cancelled||0) + '</strong><span>Cancelled ✕</span></div>' +
 '<div class="wkr-kpi" style="border-color:#DC2626"><strong style="color:#DC2626">' + (stats.failed||0) + '</strong><span>Failed ✗</span></div>' +
 '</div>';
-var doneW = pct(stats.done), delayW = pct(stats.delayed||0), cancelW = pct(stats.cancelled||0);
-var activeW = Math.max(0, 100 - doneW - delayW - cancelW);
+var doneW = pct(stats.done), cancelW = pct(stats.cancelled||0);
+var activeW = Math.max(0, 100 - doneW - cancelW);
 h += '<div style="margin-bottom:18px">' +
 '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">Completion ' + pct(stats.done) + '%</div>' +
 '<div style="height:10px;border-radius:5px;overflow:hidden;display:flex;background:var(--border)">' +
 '<div style="width:' + doneW + '%;background:#059669" title="Deployed"></div>' +
 '<div style="width:' + activeW + '%;background:#3B82F6" title="Active"></div>' +
-'<div style="width:' + delayW + '%;background:#D97706" title="Delayed"></div>' +
 '<div style="width:' + cancelW + '%;background:#DC2626" title="Cancelled"></div>' +
 '</div>' +
 '<div style="display:flex;gap:14px;margin-top:5px;font-size:10px;color:var(--muted)">' +
 '<span style="color:#059669">■ Deployed</span>' +
 '<span style="color:#3B82F6">■ Active</span>' +
-'<span style="color:#D97706">■ Delayed</span>' +
 '<span style="color:#DC2626">■ Cancelled</span>' +
 '</div>' +
 '</div>';
 var typeKeys = Object.keys(typeCounts).sort(function(a,b){ return typeCounts[b].total - typeCounts[a].total; });
 if (typeKeys.length) {
 h += '<div class="wkr-section"><div class="wkr-section-title">Changes by Type</div>';
-h += '<table class="wkr-table"><thead><tr><th>Type</th><th>Total</th><th>Deployed</th><th>Active</th><th>Delayed</th><th>Cancelled</th><th style="color:#DC2626">Failed</th></tr></thead><tbody>';
+h += '<table class="wkr-table"><thead><tr><th>Type</th><th>Total</th><th>Deployed</th><th>Active</th><th>Cancelled</th><th style="color:#DC2626">Failed</th></tr></thead><tbody>';
 typeKeys.forEach(function(t) {
 var tc = typeCounts[t];
 h += '<tr><td style="font-weight:600">' + (TYPE_NAMES_MAP[t]||t) + '</td>' +
 '<td>' + tc.total + '</td>' +
 '<td style="color:#059669;font-weight:600">' + (tc.done||0) + '</td>' +
 '<td style="color:#1E40AF">' + (tc.active||0) + '</td>' +
-'<td style="color:#D97706">' + (tc.delayed||0) + '</td>' +
 '<td style="color:#DC2626">' + (tc.cancelled||0) + '</td>' +
 '<td style="color:#DC2626;font-weight:'+(tc.failed>0?'700':'400')+'">' + (tc.failed||0) + '</td></tr>';
 });
@@ -4760,13 +4786,12 @@ lines.push('OVERVIEW');
 lines.push('Total Changes Planned : ' + stats.total);
 lines.push('Deployed ✅           : ' + stats.done + ' (' + pct(stats.done) + '%)');
 lines.push('Active ⏳             : ' + (stats.active||0) + ' (' + pct(stats.active||0) + '%)');
-lines.push('Delayed →             : ' + (stats.delayed||0) + ' (' + pct(stats.delayed||0) + '%)');
 lines.push('Cancelled ✕           : ' + (stats.cancelled||0) + ' (' + pct(stats.cancelled||0) + '%)');
 lines.push('');
 lines.push('BY TYPE');
 typeKeys.forEach(function(t) {
 var tc = typeCounts[t];
-lines.push((TYPE_NAMES_MAP[t]||t) + ': ' + tc.total + ' total  ✅ ' + (tc.done||0) + '  ⏳ ' + (tc.active||0) + '  → ' + (tc.delayed||0) + '  ✕ ' + (tc.cancelled||0));
+lines.push((TYPE_NAMES_MAP[t]||t) + ': ' + tc.total + ' total  ✅ ' + (tc.done||0) + '  ⏳ ' + (tc.active||0) + '  ✕ ' + (tc.cancelled||0));
 });
 lines.push('');
 lines.push('ALL CHANGES');
@@ -5566,18 +5591,6 @@ body.innerHTML = h;
   </div>
 </div>
 
-<div class="analytics-overlay" id="analyticsOverlay" onclick="if(event.target===this)closeAnalytics()">
-  <div class="analytics-panel">
-    <div class="analytics-head">
-      <h2>👥 Dashboard Adoption</h2>
-      <button class="analytics-close" onclick="closeAnalytics()">✕</button>
-    </div>
-    <div class="analytics-body" id="analyticsBody">
-      <div class="ana-loading">Loading usage data…</div>
-    </div>
-  </div>
-</div>
-
 <div class="summary-overlay" id="summaryOverlay" onclick="if(event.target===this)closeSummary()">
   <div class="summary-panel">
     <div class="summary-head">
@@ -5618,10 +5631,9 @@ body.innerHTML = h;
               <th onclick="sumSort('total')">Total <span class="sort-arrow" id="srt-total">↕</span></th>
               <th onclick="sumSort('done')">Deployed <span class="sort-arrow" id="srt-done">↕</span></th>
               <th onclick="sumSort('active')">Upcoming <span class="sort-arrow" id="srt-active">↕</span></th>
-              <th onclick="sumSort('delayed')">Delayed <span class="sort-arrow" id="srt-delayed">↕</span></th>
+              <th onclick="sumSort('doneIssues')" style="color:#D97706">Done w/issue <span class="sort-arrow" id="srt-doneIssues">↕</span></th>
               <th onclick="sumSort('cancelled')">Cancelled <span class="sort-arrow" id="srt-cancelled">↕</span></th>
               <th onclick="sumSort('failed')" style="color:#DC2626">Failed ✗ <span class="sort-arrow" id="srt-failed">↕</span></th>
-              <th onclick="sumSort('delayRate')">Delay Rate <span class="sort-arrow" id="srt-delayRate">↕</span></th>
             </tr>
           </thead>
           <tbody id="sumTableBody"></tbody>
