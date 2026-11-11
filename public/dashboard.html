@@ -17,6 +17,8 @@
 --firmware-bg:#FDDFA0;--firmware-tx:#5A3A00;
 --infra-bg:#DDD9CF;--infra-tx:#3A3831;
 --sol-bg:#F4C8D8;--sol-tx:#5E1535;
+--tool-bg:#CFE8F0;--tool-tx:#0B4A5E;
+--config-bg:#E4E0A8;--config-tx:#4F4A06;
 --cert-bg:#F7C5C5;--cert-tx:#5E1515;
 --os-bg:#E2D9F3;--os-tx:#3A1F6E;
 --golive-bg:#DCFCE7;--golive-tx:#14532D;
@@ -388,7 +390,7 @@ th.wk-cur,.wk-hdr.wk-cur{background:#EAF3F0 !important;color:#0A6040 !important;
 .stale-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px;opacity:.8}
 .stale-close:hover{opacity:1;background:rgba(255,255,255,.15)}
 .stale-body{padding:20px 24px;max-height:70vh;overflow-y:auto}
-.stale-row{display:grid;grid-template-columns:180px 70px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--border);margin-bottom:6px}
+.stale-row{display:grid;grid-template-columns:22px 170px 80px 1fr 220px;gap:10px;align-items:center;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--border);margin-bottom:6px}
 .stale-row:hover{border-color:#D97706}
 .stale-site{font-weight:700;font-size:12px;color:var(--text)}
 .stale-wk{font-size:11px;color:#D97706;font-weight:600;white-space:nowrap}
@@ -456,6 +458,8 @@ th.wk-cur,.wk-hdr.wk-cur{background:#EAF3F0 !important;color:#0A6040 !important;
 .chip.firmware{background:var(--firmware-bg);color:var(--firmware-tx)}
 .chip.infra{background:var(--infra-bg);color:var(--infra-tx)}
 .chip.sol{background:var(--sol-bg);color:var(--sol-tx)}
+.chip.tool{background:var(--tool-bg);color:var(--tool-tx)}
+.chip.config{background:var(--config-bg);color:var(--config-tx)}
 .chip.cert{background:var(--cert-bg);color:var(--cert-tx)}
 .chip.os{background:var(--os-bg);color:var(--os-tx)}
 .chip.golive{background:var(--golive-bg);color:var(--golive-tx);font-weight:700;border:1.5px solid #86EFAC}
@@ -661,21 +665,14 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <option value="gm">GreyMatter Upgrade / Hotfix</option>
     <option value="firmware">Firmware Update</option>
     <option value="infra">Infra Update</option>
-    <option value="sol">Tool / Config / Solution Update</option>
+    <option value="tool">Tool Update</option>
+    <option value="config">Configuration Update</option>
+    <option value="sol">Solution Modification</option>
     <option value="cert">Cert Renewal</option>
     <option value="os">OS Patching</option>
     <option value="golive">New Go-Live</option>
   </select>
 
-  <span class="filter-label" style="display:none">Change Category</span>
-  <select id="categoryFilter" style="display:none" onchange="applyFilters()">
-    <option value="">All categories</option>
-    <option value="Emergency">Emergency</option>
-    <option value="Normal">Normal</option>
-    <option value="Standard">Standard</option>
-    <option value="Urgent">Urgent</option>
-    <option value="__none__">Not set</option>
-  </select>
 
   <span class="filter-label">Month</span>
   <select id="monthFilter" onchange="applyFilters()">
@@ -689,11 +686,24 @@ text-align:center;padding:6px 0 4px;line-height:1;
     <option value="Jan">Jan-27</option><option value="Feb">Feb-27</option>
     <option value="Mar27">Mar-27</option>
   </select>
+
+  <span class="filter-label">Change Category</span>
+  <select id="categoryFilter" onchange="applyFilters()">
+    <option value="">All categories</option>
+    <option value="Emergency">Emergency</option>
+    <option value="Normal">Normal</option>
+    <option value="Standard">Standard</option>
+    <option value="Urgent">Urgent</option>
+    <option value="__none__">Not set</option>
+  </select>
   <div class="legend" id="legendBar">
+    <div class="leg active" data-type="" id="legAll" onclick="clearLegendFilter()">All</div>
     <div class="leg" data-type="gm"       onclick="toggleLegendFilter('gm')"><div class="leg-sq" style="background:var(--gm-bg)"></div>GreyMatter Upgrade</div>
     <div class="leg" data-type="firmware" onclick="toggleLegendFilter('firmware')"><div class="leg-sq" style="background:var(--firmware-bg)"></div>Firmware Update</div>
     <div class="leg" data-type="infra"    onclick="toggleLegendFilter('infra')"><div class="leg-sq" style="background:var(--infra-bg)"></div>Infra Update</div>
-    <div class="leg" data-type="sol"    onclick="toggleLegendFilter('sol')"><div class="leg-sq" style="background:var(--sol-bg)"></div>Tool / Config</div>
+    <div class="leg" data-type="tool"   onclick="toggleLegendFilter('tool')"><div class="leg-sq" style="background:var(--tool-bg)"></div>Tool Update</div>
+    <div class="leg" data-type="config" onclick="toggleLegendFilter('config')"><div class="leg-sq" style="background:var(--config-bg)"></div>Configuration Update</div>
+    <div class="leg" data-type="sol"    onclick="toggleLegendFilter('sol')"><div class="leg-sq" style="background:var(--sol-bg)"></div>Solution Modification</div>
     <div class="leg" data-type="golive" onclick="toggleLegendFilter('golive')"><div class="leg-sq" style="background:var(--golive-bg);border:1px solid #86EFAC"></div>Go-Live</div>
   </div>
   <button id="addSiteBtn" onclick="openNewSiteIfAllowed()" title="Add a new site to the calendar" style="margin-left:auto;padding:5px 12px;font-size:11px;font-weight:600;font-family:var(--sans);background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">＋ New Site</button>
@@ -761,7 +771,9 @@ text-align:center;padding:6px 0 4px;line-height:1;
           <option value="gm">GreyMatter Upgrade / Hotfix</option>
           <option value="firmware">Firmware Update</option>
           <option value="infra">Infra Update</option>
-          <option value="sol">Tool / Config / Solution Update</option>
+          <option value="tool">Tool Update</option>
+    <option value="config">Configuration Update</option>
+    <option value="sol">Solution Modification</option>
           <option value="cert">Cert Renewal</option>
           <option value="os">OS Patching</option>
           <option value="golive">🚀 New Go-Live</option>
@@ -1184,7 +1196,7 @@ if (n && cellVal && new RegExp('CRN\\s*#?\\s*0*' + n + '(?!\\d)', 'i').test(cell
 return true;
 });
 }
-var CR_CHANGE_TYPE_TO_CHIP = { 'greymatter upgrade':'gm', 'hotfix upgrade':'gm', 'firmware update':'firmware', 'infra update':'infra', 'tool update':'sol', 'configuration update':'sol', 'solution modification':'sol' };
+var CR_CHANGE_TYPE_TO_CHIP = { 'greymatter upgrade':'gm', 'hotfix upgrade':'gm', 'firmware update':'firmware', 'infra update':'infra', 'tool update':'tool', 'configuration update':'config', 'solution modification':'sol' };
 var CR_STATUS_TO_CHIP = { 'Successful':'done', 'Successful with Issues':'done-issues', 'Failed':'failed', 'Cancelled':'cancelled' };
 // Salesforce CR -> same entry encoding the calendar cells use, so it renders as a normal chip.
 function crToEntry(cr) {
@@ -1251,6 +1263,8 @@ bfr:    { bg:'#C5EAD9', tx:'#0A3D26' },
 vda:    { bg:'#FDDFA0', tx:'#5A3A00' },
 infra:  { bg:'#DDD9CF', tx:'#3A3831' },
 sol:    { bg:'#F4C8D8', tx:'#5E1535' },
+tool:   { bg:'#CFE8F0', tx:'#0B4A5E' },
+config: { bg:'#E4E0A8', tx:'#4F4A06' },
 cert:   { bg:'#F7C5C5', tx:'#5E1515' },
 os:     { bg:'#E2D9F3', tx:'#3A1F6E' },
 golive: { bg:'#DCFCE7', tx:'#14532D' }
@@ -1995,7 +2009,7 @@ if (!q) { box.style.display = 'none'; _searchSelIdx = -1; return; }
 var rows = state.currentTab === 'rtp' ? state.rtpRows : state.rmsRows;
 if (!rows) { box.style.display = 'none'; return; }
 var matches = rows.filter(function(r) {
-return r.site.toLowerCase().includes(q);
+return !isHiddenSite(r.site) && r.site.toLowerCase().includes(q);
 }).slice(0, 10);
 if (!matches.length) { box.style.display = 'none'; return; }
 box.innerHTML = '';
@@ -2145,20 +2159,27 @@ state.activeType = type;
 showTypePopup(type);
 }
 document.querySelectorAll('.leg').forEach(function(el) {
-el.classList.toggle('active', el.getAttribute('data-type') === state.activeType);
+el.classList.toggle('active', (el.getAttribute('data-type') || null) === state.activeType);
 });
+applyFilters();
+}
+function clearLegendFilter() {
+var sel = document.getElementById('typeFilter'); if (sel) sel.value = '';
+state.activeType = null;
+closeTypePopup();
+document.querySelectorAll('.leg').forEach(function(el) { el.classList.toggle('active', !el.getAttribute('data-type')); });
 applyFilters();
 }
 function showTypePopup(type) {
 var rows = state.currentTab === 'rtp' ? state.rtpRows : state.rmsRows;
 if (!rows) return;
 var TYPE_ICONS_MAP = {
-gm: '🖥', firmware: '⚙️', infra: '🏗', sol: '🔧',
+gm: '🖥', firmware: '⚙️', infra: '🏗', sol: '🔧', tool: '🛠', config: '🧩',
 cert: '🔒', os: '🛡', golive: '🚀'
 };
 var TYPE_NAMES_MAP = {
 gm: 'GreyMatter', firmware: 'Firmware', infra: 'Infra',
-sol: 'Solution', cert: 'Cert Renewal', os: 'OS Patching', golive: 'Go-Live'
+sol: 'Solution Modification', tool: 'Tool Update', config: 'Configuration Update', cert: 'Cert Renewal', os: 'OS Patching', golive: 'Go-Live'
 };
 var STATUS_STYLE = {
 active:    'background:#DCFCE7;color:#14532D',
@@ -2253,7 +2274,7 @@ document.getElementById('typePopupActive').textContent   = activeCount;
 document.getElementById('typePopupDone').textContent     = doneCount;
 document.getElementById('typePopupUpcoming').textContent = upcomingCount;
 var headEl = document.querySelector('.type-popup-head');
-var headBgs = { gm:'#EFF6FF', firmware:'#FFFBEB', infra:'#F5F5F4', sol:'#FFF0F9', cert:'#FFF1F2', os:'#F5F3FF', golive:'#ECFDF5' };
+var headBgs = { gm:'#EFF6FF', firmware:'#FFFBEB', infra:'#F5F5F4', sol:'#FFF0F9', tool:'#EFF8FB', config:'#FBFAEA', cert:'#FFF1F2', os:'#F5F3FF', golive:'#ECFDF5' };
 if (headEl) headEl.style.background = headBgs[type] || 'var(--surface2)';
 var searchEl = document.getElementById('typePopupSearch');
 if (searchEl) searchEl.value = '';
@@ -2261,7 +2282,9 @@ renderTypePopupRows(allEntries, STATUS_STYLE);
 var popup = document.getElementById('typePopup');
 popup.classList.add('open');
 popup.style.left = '50%';
-popup.style.top  = '80px';
+var _lb = document.getElementById('legendBar'); var _fb = _lb ? _lb.closest('div[class]') : null;
+var _bar = document.getElementById('categoryFilter'); var _bottom = 80; try { var _bw = _bar.parentElement.getBoundingClientRect(); _bottom = Math.max(80, Math.round(_bw.bottom) + 8); } catch(e) {}
+popup.style.top  = _bottom + 'px';
 popup.style.transform = 'translateX(-50%)';
 setTimeout(function() {
 document.addEventListener('click', outsideTypePopupClick);
@@ -2354,7 +2377,7 @@ document.removeEventListener('click', outsideTypePopupClick);
 function syncLegendToFilter() {
 var val = document.getElementById('typeFilter').value;
 document.querySelectorAll('.leg').forEach(function(el) {
-el.classList.toggle('active', el.getAttribute('data-type') === val);
+el.classList.toggle('active', (el.getAttribute('data-type') || '') === val);
 });
 }
 var HIDDEN_SITES = ['cloudcentric', 'greyorange', 'samsatl'];
@@ -3208,15 +3231,15 @@ btn.textContent = 'Save'; btn.disabled = false;
 }
 var TYPE_LABELS = {
 gm: 'GreyMatter', firmware: 'Firmware', infra: 'Infra',
-sol: 'Solution', cert: 'Cert', os: 'OS Patch', golive: 'Go-Live'
+sol: 'Solution Modification', tool: 'Tool Update', config: 'Configuration Update', cert: 'Cert', os: 'OS Patch', golive: 'Go-Live'
 };
 var TYPE_COLORS = {
 gm: '#0C2F60', firmware: '#5A3A00', infra: '#3A3831',
-sol: '#5E1535', cert: '#5E1515', os: '#3A1F6E', golive: '#14532D'
+sol: '#5E1535', tool: '#0B4A5E', config: '#4F4A06', cert: '#5E1515', os: '#3A1F6E', golive: '#14532D'
 };
 var TYPE_BG = {
 gm: '#D4E6F9', firmware: '#FDDFA0', infra: '#DDD9CF',
-sol: '#F4C8D8', cert: '#F7C5C5', os: '#E2D9F3', golive: '#DCFCE7'
+sol: '#F4C8D8', tool: '#CFE8F0', config: '#E4E0A8', cert: '#F7C5C5', os: '#E2D9F3', golive: '#DCFCE7'
 };
 function showWeekSummary(ev, week) {
 var rows = state.currentTab === 'rtp' ? state.rtpRows : state.rmsRows;
@@ -3616,7 +3639,9 @@ var TYPE_META = {
 gm:       { label:'GreyMatter', bg:'#D4E6F9', color:'#0C2F60' },
 firmware: { label:'Firmware',   bg:'#FDDFA0', color:'#5A3A00' },
 infra:    { label:'Infra',      bg:'#DDD9CF', color:'#3A3831' },
-sol:      { label:'Solution',   bg:'#F4C8D8', color:'#5E1535' },
+tool:     { label:'Tool Update',          bg:'#CFE8F0', color:'#0B4A5E' },
+config:   { label:'Configuration Update', bg:'#E4E0A8', color:'#4F4A06' },
+sol:      { label:'Solution Modification', bg:'#F4C8D8', color:'#5E1535' },
 golive:   { label:'Go-Live',    bg:'#DCFCE7', color:'#14532D' },
 };
 function openSummary() {
@@ -3951,6 +3976,7 @@ function _collectStaleEntries() {
   sources.forEach(function(src) {
     if (!src.rows) return;
     src.rows.forEach(function(r) {
+      if (isHiddenSite(r.site)) return;
       Object.keys(r.cells).forEach(function(wk) {
         var wkAbs = getAbsWk(wk);
         // Compare absolute week numbers: skip current & future weeks (including 2027)
@@ -3993,6 +4019,7 @@ function _collectStaleEntries() {
     var wkAbs = getAbsWk(wk);
     if (wkAbs >= curWkAbs || cited(cr)) return;
     var m = cr.matches[0];
+    if (isHiddenSite(m.site)) return;
     entries.push({
       site: m.site, tab: m.tab, pl: '', week: wk, wkNum: wkAbs,
       text: 'CR ' + String(cr.crNumber || '').replace(/^0+/, '') + ' — ' + (cr.activity || cr.subject || ''),
@@ -4156,7 +4183,7 @@ return;
 }
 var TYPE_COLORS = {
 gm:'background:#DBEAFE;color:#1E40AF', firmware:'background:#FEF3C7;color:#92400E',
-infra:'background:#E5E7EB;color:#374151', sol:'background:#FCE7F3;color:#9D174D',
+infra:'background:#E5E7EB;color:#374151', sol:'background:#FCE7F3;color:#9D174D', tool:'background:#CFFAFE;color:#155E75', config:'background:#FEF9C3;color:#854D0E',
 cert:'background:#FEE2E2;color:#991B1B', os:'background:#EDE9FE;color:#5B21B6',
 golive:'background:#D1FAE5;color:#065F46'
 };
@@ -4168,7 +4195,7 @@ var h = '<div style="display:flex;align-items:center;justify-content:space-betwe
 '<button onclick="staleSelectAll(false)" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:var(--bg);cursor:pointer;color:var(--muted)">Deselect All</button>' +
 '<button id="staleApplyBtn" onclick="applyAllStale()" style="font-size:11px;font-weight:700;padding:6px 16px;border-radius:6px;border:none;background:#059669;color:#fff;cursor:pointer">✓ Apply All</button>' +
 '</div></div>';
-h += '<div style="display:grid;grid-template-columns:22px 170px 60px 1fr 220px;gap:10px;padding:5px 10px;' +
+h += '<div style="display:grid;grid-template-columns:22px 170px 80px 1fr 220px;gap:10px;padding:5px 10px;' +
 'font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);margin-bottom:6px">' +
 '<div></div><div>Site</div><div>Week</div><div>Change</div><div>Action for this entry</div></div>';
 rows.forEach(function(e, idx) {
@@ -4370,10 +4397,10 @@ if (!wkLabel) wkLabel = CURRENT_WEEK;
 var rng = weekToDateRange(wkLabel);
 var fmt = function(d){ return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); };
 document.getElementById('twTitle').textContent = '📍 ' + wkLabel + '  ·  ' + fmt(rng.mon) + ' – ' + fmt(rng.sun);
-var TYPE_NAMES = {gm:'GreyMatter',firmware:'Firmware',infra:'Infra',sol:'Solution',cert:'Cert',os:'OS Patch',golive:'Go-Live'};
+var TYPE_NAMES = {gm:'GreyMatter',firmware:'Firmware',infra:'Infra',sol:'Solution Modification',tool:'Tool Update',config:'Configuration Update',cert:'Cert',os:'OS Patch',golive:'Go-Live'};
 var TYPE_COLORS = {
 gm:'background:#DBEAFE;color:#1E40AF', firmware:'background:#FEF3C7;color:#92400E',
-infra:'background:#E5E7EB;color:#374151', sol:'background:#FCE7F3;color:#9D174D',
+infra:'background:#E5E7EB;color:#374151', sol:'background:#FCE7F3;color:#9D174D', tool:'background:#CFFAFE;color:#155E75', config:'background:#FEF9C3;color:#854D0E',
 cert:'background:#FEE2E2;color:#991B1B', os:'background:#EDE9FE;color:#5B21B6',
 golive:'background:#D1FAE5;color:#065F46'
 };
@@ -4659,7 +4686,7 @@ var so = (statusOrder[a.status]||9) - (statusOrder[b.status]||9);
 return so !== 0 ? so : a.site.localeCompare(b.site);
 });
 var TYPE_NAMES_MAP = { gm:'GreyMatter', firmware:'Firmware', infra:'Infra',
-sol:'Solution', cert:'Cert Renewal', os:'OS Patching', golive:'Go-Live' };
+sol:'Solution Modification', tool:'Tool Update', config:'Configuration Update', cert:'Cert Renewal', os:'OS Patching', golive:'Go-Live' };
 var STATUS_STYLES = {
 done:      'background:#D1FAE5;color:#065F46',
 active:    'background:#DBEAFE;color:#1E40AF',
