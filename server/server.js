@@ -145,10 +145,25 @@ async function updateVersion(tab, site, ver, email) {
   return { ok: true };
 }
 
+// Salesforce-only sites have no calendar row; create one on first edit.
+async function ensureSiteRow(tab, site, email, why) {
+  let row = await findSite(tab, site);
+  if (row) return row;
+  const { rows: [{ next }] } = await pool.query(
+    'SELECT COALESCE(MAX(row_order),-1)+1 AS next FROM sites WHERE tab=$1', [tab]
+  );
+  const { rows: [created] } = await pool.query(
+    `INSERT INTO sites (tab, site, pl, ver, row_order) VALUES ($1,$2,'','',$3) RETURNING *`,
+    [tab, site, next]
+  );
+  await writeAuditLog('New Site Added', tab, site, '', '', 'from Salesforce (' + why + ')', email);
+  return created;
+}
+
 // ── updateCSPOC ───────────────────────────────────────────────
 async function updateCSPOC(tab, site, value, email) {
-  const row = await findSite(tab, site);
-  if (!row) throw new Error('Site not found');
+  if (!String(value || '').trim() && !(await findSite(tab, site))) return { ok: true };
+  const row = await ensureSiteRow(tab, site, email, 'CS POC set');
   const old = row.cspoc || '';
   await pool.query('UPDATE sites SET cspoc=$1, updated_at=now() WHERE id=$2', [value, row.id]);
   await writeAuditLog('CS POC Updated', tab, site, 'CS POC', old, value, email);
@@ -259,8 +274,7 @@ async function getSiteUrlsForTab(tab) {
 
 async function setSiteUrls(tab, site, urlsJson, email) {
   const urls = JSON.parse(urlsJson);
-  const row  = await findSite(tab, site);
-  if (!row) throw new Error('Site not found');
+  const row  = await ensureSiteRow(tab, site, email, 'links set');
 
   await pool.query(
     `INSERT INTO site_links (site_id, tab, site, pl, tower, md_dashboard, butler_server, platform_url)

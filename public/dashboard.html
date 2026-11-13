@@ -2608,9 +2608,9 @@ var urlBtnTitle = hasUrls ? 'Site links' : 'Add site links';
 h += '<td class="fixed sc1 site-name" data-sitekey="' + siteKey + '">' +
 esc(row.site) + rzBadge + wrBadge +
 (row.sf ? '<div class="pl-subtitle" title="This site exists only in Salesforce — not in the calendar">☁ Salesforce</div>' : (row.pl ? '<div class="pl-subtitle">'+esc(row.pl)+'</div>' : '')) +
-(row.sf ? '' : '<button class="' + urlBtnCls + '" data-urlsite="' + esc(row.site) + '" data-urlpl="' + esc(row.pl||'') + '" title="' + urlBtnTitle + '">🔗</button>') +
+('<button class="' + urlBtnCls + '" data-urlsite="' + esc(row.site) + '" data-urlpl="' + esc(row.pl||'') + '" title="' + urlBtnTitle + '">🔗</button>') +
 '</td>';
-h += '<td class="fixed sc2 cspoc-cell"><input class="cspoc-input" data-site="' + esc(row.site) + '" data-tab="' + state.currentTab + '" value="' + esc(row.cspoc || '') + '"' + (row.sf ? ' disabled' : '') + ' placeholder="—" onblur="saveCSPOC(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}"/></td>';
+h += '<td class="fixed sc2 cspoc-cell"><input class="cspoc-input" data-site="' + esc(row.site) + '" data-tab="' + state.currentTab + '" value="' + esc(row.cspoc || '') + '" placeholder="—" onblur="saveCSPOC(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}"/></td>';
 h += '<td class="fixed sc3 ver-cell"><input class="ver-input" data-site="' + esc(row.site) + '" value="' + esc(row.ver || '') + '"' + (row.sf ? ' disabled' : '') + ' placeholder="—" onblur="saveVersion(this)" onkeydown="if(event.key===\'Enter\'){this.blur()}"/></td>';
 for (var ci = 0; ci < ALL_WEEKS.length; ci++) {
 var cellWk  = ALL_WEEKS[ci];
@@ -3522,6 +3522,8 @@ google.script.run
 .withSuccessHandler(function() {
 var key = _urlKey(state.currentTab, site, _urlPopupPl);
 state.siteUrls[key] = urls;
+(function(){ var _t = state.currentTab, _rows = _t === 'rtp' ? state.rtpRows : state.rmsRows;
+if (!(_rows || []).some(function(r){ return r.site === site; })) google.script.run.withSuccessHandler(function(rs){ if (_t === 'rtp') state.rtpRows = rs; else state.rmsRows = rs; applyFilters(); }).readSites(_t); })();
 applyFilters();
 document.getElementById('urlModalMsg').textContent = '✓ Links saved';
 document.getElementById('urlModalMsg').className = 'modal-msg ok';
@@ -5247,7 +5249,10 @@ var site=inp.getAttribute('data-site');var val=inp.value.trim();
 var rows=state.currentTab==='rtp'?state.rtpRows:state.rmsRows;
 var row=rows&&rows.find(function(r){return r.site===site;});
 if(row&&row.cspoc===val)return;if(row)row.cspoc=val;
-google.script.run.withSuccessHandler(function(res){if(res&&res.error)alert(res.error);})
+if(!row&&!val)return;
+var tabNow=state.currentTab;
+google.script.run.withSuccessHandler(function(res){if(res&&res.error){alert(res.error);return;}
+if(!row){google.script.run.withSuccessHandler(function(rs){if(tabNow==='rtp')state.rtpRows=rs;else state.rmsRows=rs;applyFilters();}).readSites(tabNow);}})
 .withFailureHandler(function(){alert('Failed to save CS POC');})
 .updateCSPOC(state.currentTab,site,val,state.userEmail);
 }
