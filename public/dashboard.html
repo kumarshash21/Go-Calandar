@@ -3323,10 +3323,14 @@ if (p) { p.classList.remove('open'); p.style.display = 'none'; }
 var _urlPopupSite = null;
 var URL_FIELDS_MAP = {
 'default':   [
+{ key: 'aio',      icon: '🖥', label: 'AIO UI'         },
 { key: 'tower',    icon: '🗼', label: 'Tower'          },
 { key: 'md',       icon: '📊', label: 'MD Dashboard'   },
 { key: 'butler',   icon: '🤖', label: 'Butler Server'  },
 { key: 'platform', icon: '🖥', label: 'Platform URL'   },
+{ key: 'grafana',  icon: '📈', label: 'Grafana',               optional: true },
+{ key: 'easy',     icon: '🎛', label: 'Easy Console',          optional: true },
+{ key: 'rbutler',  icon: '🤖', label: 'Reserve Butler Server', optional: true },
 ],
 'rms': [
 { key: 'tower',    icon: '📊', label: 'MD'             },
@@ -3388,6 +3392,7 @@ var linksHtml = '';
 var fields = getUrlFieldsForSite(site, pl || _urlPopupPl);
 fields.forEach(function(f) {
 var url = urls[f.key] || '';
+if (!url && f.optional) return; // optional links appear only once filled in
 if (url) {
 linksHtml +=
 '<a class="url-link-row" href="' + esc(url) + '" target="_blank" rel="noopener">' +
@@ -5142,6 +5147,8 @@ function _collectMissingLinks() {
     (src.rows || []).forEach(function(r) {
       var urls = state.siteUrls[_urlKey(src.tab, r.site, r.pl)] || state.siteUrls[src.tab + '::' + r.site] || r.urls || {};
       var missing = [];
+      var _fs = (urls._type && URL_FIELDS_MAP[urls._type]) || _plToFields(r.pl || '', src.tab);
+      if (_fs.some(function(f){ return f.key === 'aio'; }) && !(urls.aio || '').trim()) missing.push('AIO UI');
       if (!(urls.tower    || '').trim()) missing.push('Tower');
       if (!(urls.md       || '').trim()) missing.push('MD Dashboard');
       if (!(urls.butler   || '').trim()) missing.push('Butler Server');
@@ -5693,7 +5700,7 @@ body.innerHTML = h;
     <div style="background:#D97706;color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-size:15px;font-weight:800">🔗 Missing Links Warning</div>
-        <div style="font-size:11px;opacity:.8;margin-top:2px">Sites with completed Go-Live but missing Tower / MD / Butler / Platform links</div>
+        <div style="font-size:11px;opacity:.8;margin-top:2px">Sites with completed Go-Live but missing AIO UI / Tower / MD / Butler / Platform links</div>
       </div>
       <button onclick="closeLinksWarningPanel()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">✕</button>
     </div>

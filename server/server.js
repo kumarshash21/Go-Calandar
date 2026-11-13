@@ -43,7 +43,15 @@ async function findSite(tab, site) {
 }
 
 // ── readSites ─────────────────────────────────────────────────
+let linkColsReady = false;
+async function ensureLinkCols() {
+  if (linkColsReady) return;
+  await pool.query(`ALTER TABLE site_links ADD COLUMN IF NOT EXISTS aio_ui TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE site_links ADD COLUMN IF NOT EXISTS grafana_url TEXT NOT NULL DEFAULT '', ADD COLUMN IF NOT EXISTS easy_console TEXT NOT NULL DEFAULT '', ADD COLUMN IF NOT EXISTS reserve_butler TEXT NOT NULL DEFAULT ''`);
+  linkColsReady = true;
+}
 async function readSites(tab) {
+  await ensureLinkCols();
   const ck = cacheKey(tab);
   const hit = cache.get(ck);
   if (hit) return hit;
@@ -54,6 +62,10 @@ async function readSites(tab) {
        COALESCE(NULLIF(l.md_dashboard,''), s.url_md) AS url_md,
        COALESCE(NULLIF(l.butler_server,''), s.url_butler) AS url_butler,
        COALESCE(NULLIF(l.platform_url,''), s.url_platform) AS url_platform,
+       COALESCE(l.aio_ui,'') AS url_aio,
+       COALESCE(l.grafana_url,'') AS url_grafana,
+       COALESCE(l.easy_console,'') AS url_easy,
+       COALESCE(l.reserve_butler,'') AS url_rbutler,
        COALESCE(
          jsonb_object_agg(w.week, trim(w.value)) FILTER (WHERE w.week IS NOT NULL AND trim(w.value) <> ''),
          '{}'::jsonb
@@ -63,7 +75,7 @@ async function readSites(tab) {
      LEFT JOIN site_links l ON l.site_id = s.id
      WHERE s.tab = $1
      GROUP BY s.id, s.site, s.pl, s.ver, s.cspoc, s.url_tower, s.url_md, s.url_butler, s.url_platform, s.row_order,
-              l.tower, l.md_dashboard, l.butler_server, l.platform_url
+              l.tower, l.md_dashboard, l.butler_server, l.platform_url, l.aio_ui, l.grafana_url, l.easy_console, l.reserve_butler
      ORDER BY s.row_order`,
     [tab]
   );
@@ -78,6 +90,10 @@ async function readSites(tab) {
       md:       r.url_md,
       butler:   r.url_butler,
       platform: r.url_platform,
+      aio:      r.url_aio,
+      grafana:  r.url_grafana,
+      easy:     r.url_easy,
+      rbutler:  r.url_rbutler,
     },
     cells: r.cells,
   }));
@@ -273,14 +289,15 @@ async function getSiteUrlsForTab(tab) {
 }
 
 async function setSiteUrls(tab, site, urlsJson, email) {
+  await ensureLinkCols();
   const urls = JSON.parse(urlsJson);
   const row  = await ensureSiteRow(tab, site, email, 'links set');
 
   await pool.query(
-    `INSERT INTO site_links (site_id, tab, site, pl, tower, md_dashboard, butler_server, platform_url)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-     ON CONFLICT (site_id) DO UPDATE SET tower=$5, md_dashboard=$6, butler_server=$7, platform_url=$8, updated_at=now()`,
-    [row.id, row.tab, row.site, row.pl, urls.tower||'', urls.md||'', urls.butler||'', urls.platform||'']
+    `INSERT INTO site_links (site_id, tab, site, pl, tower, md_dashboard, butler_server, platform_url, aio_ui, grafana_url, easy_console, reserve_butler)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     ON CONFLICT (site_id) DO UPDATE SET tower=$5, md_dashboard=$6, butler_server=$7, platform_url=$8, aio_ui=$9, grafana_url=$10, easy_console=$11, reserve_butler=$12, updated_at=now()`,
+    [row.id, row.tab, row.site, row.pl, urls.tower||'', urls.md||'', urls.butler||'', urls.platform||'', urls.aio||'', urls.grafana||'', urls.easy||'', urls.rbutler||'']
   );
   await writeAuditLog('Links Updated', tab, site, '', '', JSON.stringify(urls), email);
   invalidateCache();
