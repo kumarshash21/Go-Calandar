@@ -4486,7 +4486,7 @@ if (e.status==='failed') {
  var ftypeBadge='<span style="'+ftypeStyle+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap">'+esc(ftypeName)+'</span>';
  var fdateFmt=e.date?new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'';
  failedRows.push('<tr class="tw-click" onclick="openTwEntry(\''+esc(fcrn)+'\')" style="background:#FFF8F8;cursor:pointer"><td style="font-weight:600;color:#991B1B">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(e.owner||'—')+'</td><td>'+fchip+'</td><td>'+ftypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+fdateFmt+'</td><td>'+fcrnBadge+'</td><td style="font-size:11px">'+esc(e.caseStatus||'—')+'</td></tr>');
-} else if (e.status==='done') {
+} else if (e.status==='done' || e.status==='done-issues') {
  var dcrn=extractCRN(e.note);
  var dcrnBadge=dcrn?'<span style="font-size:10px;font-weight:600;color:#059669;background:#D1FAE5;padding:2px 8px;border-radius:4px" title="'+esc(e.note)+'">'+esc(dcrn)+'</span>':'<span style="font-size:10px;color:var(--muted)">—</span>';
  var dtypeName = (TYPE_NAMES[e.type] || e.type || '').toUpperCase() || '—';
