@@ -513,13 +513,13 @@ async function loadCRRaw(force) {
                 ORDER BY StartDateTime DESC`;
   const records = await sfQuery(soql);
   // Change Type (GreyMatter Upgrade, Firmware Update, ...) lives on the Case, not the Event.
-  const changeType = {}, product = {}, category = {}, caseOwner = {}, caseStatus = {}, crfLink = {};
+  const changeType = {}, product = {}, category = {}, caseOwner = {}, caseStatus = {}, crfLink = {}, casePlanned = {};
   const nums = [...new Set(records.map(r => r.Case_Number__c).filter(Boolean))];
   for (let i = 0; i < nums.length; i += 150) {
     const list = nums.slice(i, i + 150).map(n => `'${String(n).replace(/[^0-9A-Za-z]/g, '')}'`).join(',');
     try {
-      const cases = await sfQuery(`SELECT CaseNumber, CRF_Link__c, Owner.Name, Status, Change_Type__c, Product_Type__c, Change_Category__c FROM Case WHERE CaseNumber IN (${list})`);
-      cases.forEach(c => { changeType[c.CaseNumber] = c.Change_Type__c || ''; product[c.CaseNumber] = c.Product_Type__c || ''; category[c.CaseNumber] = c.Change_Category__c || ''; caseOwner[c.CaseNumber] = (c.Owner && c.Owner.Name) || ''; caseStatus[c.CaseNumber] = c.Status || ''; crfLink[c.CaseNumber] = c.CRF_Link__c || ''; });
+      const cases = await sfQuery(`SELECT CaseNumber, Planned_Start__c, CRF_Link__c, Owner.Name, Status, Change_Type__c, Product_Type__c, Change_Category__c FROM Case WHERE CaseNumber IN (${list})`);
+      cases.forEach(c => { changeType[c.CaseNumber] = c.Change_Type__c || ''; product[c.CaseNumber] = c.Product_Type__c || ''; category[c.CaseNumber] = c.Change_Category__c || ''; caseOwner[c.CaseNumber] = (c.Owner && c.Owner.Name) || ''; caseStatus[c.CaseNumber] = c.Status || ''; crfLink[c.CaseNumber] = c.CRF_Link__c || ''; casePlanned[c.CaseNumber] = !!c.Planned_Start__c; });
     } catch (e) { console.warn('[CR] change type lookup failed:', e.message); break; }
   }
   const rows = records.map(r => ({
@@ -538,6 +538,14 @@ async function loadCRRaw(force) {
     end:   r.EndDateTime   ? new Date(r.EndDateTime).toISOString()   : null,
     status: r.Closer_code_status__c || 'Scheduled',
   }));
+  // Planned Start cleared on the Case but the Event still holds the old dates: treat the CR as undated
+  // (shown in the current week, not stale). Only for still-open CRs whose Case was actually looked up.
+  const nowIso = new Date().toISOString();
+  rows.forEach(r => {
+    if (casePlanned[r.crNumber] === false && r.status === 'Scheduled' && !/^(solved|closed)$/i.test(r.caseStatus || '')) {
+      r.start = nowIso; r.end = null; r.noDate = true;
+    }
+  });
   // Cases with no Event on the calendar: Planned Start / Actual End on the Case are the only dates; blank when empty.
   const seen = new Set(rows.map(r => r.crNumber));
   try {

@@ -4470,7 +4470,7 @@ if (!note) return '';
 var m = note.match(/CRN[:\s#-]*([A-Za-z0-9-]+)/i); if (m) return m[1];
 m = note.match(/([A-Z]{2,}-\d{3,}|CR\d{4,}|INC\d{4,})/i); return m ? m[1] : '';
 }
-var activeRows = [], pendingRows = [], doneRows = [], failedRows = [];
+var activeRows = [], pendingRows = [], doneRows = [], doneIssueRows = [], failedRows = [];
 sites.forEach(function(s) {
 var tabLabel = s.tab ? s.tab.toUpperCase() : '';
  var plBadge = tabLabel ? '<span style="font-size:9px;background:var(--surface2);color:var(--muted);padding:1px 5px;border-radius:3px;margin-left:4px">'+esc(tabLabel)+'</span>' : '';
@@ -4493,7 +4493,7 @@ if (e.status==='failed') {
  var dtypeStyle = TYPE_COLORS[e.type] || 'background:#E5E7EB;color:#374151';
  var dtypeBadge = '<span style="'+dtypeStyle+';font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;white-space:nowrap">'+esc(dtypeName)+'</span>';
  var ddateFmt = e.date ? new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '';
- doneRows.push('<tr class="tw-click" onclick="openTwEntry(\''+esc(dcrn)+'\')" style="cursor:pointer"><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(e.owner||'—')+'</td><td>'+chip+'</td><td>'+dtypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+ddateFmt+'</td><td>'+dcrnBadge+'</td><td style="font-size:11px">'+esc(e.caseStatus||'—')+'</td></tr>');
+ (e.status==='done-issues' ? doneIssueRows : doneRows).push('<tr class="tw-click" onclick="openTwEntry(\''+esc(dcrn)+'\')" style="cursor:pointer'+(e.status==='done-issues'?';background:#FFFBEB':'')+'"><td style="font-weight:600">'+esc(s.site)+plBadge+'</td><td style="font-size:11px;font-weight:600">'+esc(e.owner||'—')+'</td><td>'+chip+'</td><td>'+dtypeBadge+'</td><td style="font-size:11px;color:var(--muted);white-space:nowrap">'+ddateFmt+'</td><td>'+dcrnBadge+'</td><td style="font-size:11px">'+esc(e.caseStatus||'—')+'</td></tr>');
 } else {
  var crn = extractCRN(e.note);
  var crnBadge = crn ? '<span style="font-size:10px;font-weight:600;color:#1D4ED8;background:#EFF6FF;padding:2px 8px;border-radius:4px" title="'+esc(e.note)+'">'+esc(crn)+'</span>' : '<span style="font-size:10px;color:var(--muted)">—</span>';
@@ -4519,11 +4519,15 @@ function _twSection(title, color, rows, emptyMsg) {
 _twSection('📅 Scheduled', 'var(--accent)', activeRows, 'No scheduled changes.');
 _twSection('🕓 Pending Scheduling', '#B45309', pendingRows, 'Nothing pending scheduling.');
 // ── COMPLETED section (Done ✅ + Failed ✗ = all closed changes) ──
-var totalCompleted = doneRows.length + failedRows.length;
-h += '<tr><td colspan="7" style="padding:10px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:#F0FDF4;color:#065F46">✔ Completed ('+totalCompleted+') — Done: '+doneRows.length+' | Failed: '+failedRows.length+'</td></tr>';
+var totalCompleted = doneRows.length + doneIssueRows.length + failedRows.length;
+h += '<tr><td colspan="7" style="padding:10px 12px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:#F0FDF4;color:#065F46">✔ Completed ('+totalCompleted+') — Done: '+doneRows.length+' | Done w/ Issues: '+doneIssueRows.length+' | Failed: '+failedRows.length+'</td></tr>';
 if (doneRows.length) {
  h += '<tr style="background:#F0FDF4"><td colspan="7" style="padding:4px 14px;font-size:9px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.4px">✅ Done — Deployed Successfully</td></tr>';
  h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">Case Owner</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Case Status</th>'+SH+doneRows.join('');
+}
+if (doneIssueRows.length) {
+ h += '<tr style="background:#FFFBEB"><td colspan="7" style="padding:4px 14px;font-size:9px;font-weight:700;color:#B45309;text-transform:uppercase;letter-spacing:.4px">⚠ Done with Issues — Deployed, issues reported</td></tr>';
+ h += SH+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:160px">Site</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:110px">Case Owner</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left">Change</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Change Type</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:65px">Date</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">CRN/Ticket</th>'+'<th '+TH+' style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--muted);text-align:left;width:100px">Case Status</th>'+SH+doneIssueRows.join('');
 }
 if (failedRows.length) {
  h += '<tr style="background:#FFF8F8"><td colspan="7" style="padding:4px 14px;font-size:9px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:.4px">✗ Failed — Deployed Unsuccessfully</td></tr>';
